@@ -1,0 +1,48 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="SkyrimJS 中文开发文档：V8、SKSE、角色、对话、任务与插件资源。"><title>完整收集任务流程 · SkyrimJS</title><link rel="stylesheet" href="assets/site.css"><script src="assets/search-index.js" defer></script><script src="assets/site.js" defer></script></head><body><aside class="sidebar"><a class="brand" href="index.html"><span>S</span><div>SkyrimJS<small>开发文档 · SE 1.5.97</small></div></a><div class="search"><input id="search" type="search" aria-label="搜索文档" placeholder="搜索 API / 示例…"><div id="search-results" hidden></div></div><nav><div class="nav-section">开始</div><a class="nav-link" href="index.html">项目介绍</a><a class="nav-link" href="getting-started.html">安装与第一个脚本</a><a class="nav-link" href="status.html">功能与验证状态</a><div class="nav-section">教程</div><a class="nav-link active" href="collection-quest.html">完整收集任务流程</a><div class="nav-section">API</div><a class="nav-link" href="runtime.html">运行时与生命周期</a><a class="nav-link" href="actors.html">玩家、NPC 与物品</a><a class="nav-link" href="events.html">角色事件监听</a><a class="nav-link" href="combat.html">战斗与角色姿态</a><a class="nav-link" href="dialogue.html">原生多轮对话</a><a class="nav-link" href="plugins.html">插件导入与动作</a><a class="nav-link" href="storage-timers.html">存储与计时器</a><a class="nav-link" href="tasks.html">任务与原生日志</a><div class="nav-section">工具</div><a class="nav-link" href="explorer.html">ESP 资源浏览器</a><div class="nav-section">维护</div><a class="nav-link" href="troubleshooting.html">日志与常见问题</a><a class="nav-link" href="changelog.html">更新日志</a><a class="nav-link" href="contributing.html">文档维护与发布</a></nav><div class="sidebar-footer">开发预览 · b450bd1<br>实现与验证状态分别记录</div></aside><div class="content-shell"><header><span>教程 / 完整收集任务流程</span><a href="tools/esp-explorer/index.html">ESP Explorer ↗</a></header><div class="reading"><article><h1 id="完整收集任务流程">完整收集任务流程</h1>
+<p>此教程提供一份可安装的完整脚本，把角色、事件、物品、对话与任务存档连接起来。纯逻辑回归已通过；新增原生事件、库存处理和对话菜单接入尚待游戏内验证。</p>
+<h2 id="流程">流程</h2>
+<p>生成并缓存旅人 NPC → 交谈接取委托 → 收集 3 朵蓝色山花 → 再次交谈实际交付 → 再次交谈领取 50 金币 → 完成并保存。</p>
+<p>示例仅依赖 Skyrim.esm。原生任务日志需要启用 SkyrimJS_Tasks.esp；缺失时 JS 进度仍工作。无需 MilkModNEW。</p>
+<h2 id="安装示例">安装示例</h2>
+<p>源码仓库示例位于 examples/collection-quest.js。也可直接 <a href="downloads/collection-quest.js">下载完整脚本</a>，以 UTF-8 保存为 Data/SKSE/Plugins/SkyrimJS/main.js。需同时使用这一轮构建的 DLL，旧 DLL 没有事件和库存查询方法。</p>
+<p>在仓库目录运行安装脚本，路径替换为游戏实际目录：</p>
+<div class="code-block"><div class="code-label">powershell<button class="copy-code">复制</button></div><pre><code>./scripts/install-collection-example.ps1 -GameDirectory 'G:/Demo/SKSEMOD/SkyrimSE'</code></pre></div>
+<p>安装器检查游戏已退出，先备份原来的 DLL、main.js 与任务载体，再复制新文件并核对 SHA256。备份放在 Data/SKSE/Plugins/SkyrimJS/backups/collection-时间戳-随机值。它不会修改源码里的 examples/main.js，也不会启动游戏。MO2 用户应把相同文件放到实际启用的模组配置中。</p>
+<p>通过 SKSE 重新启动游戏，继续一个测试存档。首次生成旅人后约 1.5 秒尝试展示委托对话；未自动打开时靠近旅人按交互键。重复读档会使用缓存 NPC。</p>
+<h2 id="游戏中操作">游戏中操作</h2>
+<ul><li>选择“交给我吧。”接取任务。选择暂时没空不会创建任务。</li><li>到世界中拾取蓝色山花；任务目标显示实际库存，未收集齐时丢弃物品会降低进度。</li><li>示例默认 DEMO_ITEMS = true，收集阶段与旅人交谈可选“演示：领取 1 朵测试山花。”，重复操作三次可走通流程。正式模组改为 false。</li><li>收集齐后与旅人交谈，选择“交付 3 朵蓝色山花。”。物品会从玩家背包转到旅人背包。</li><li>再次交谈，选择“领取 50 金币。”。金币增加后最后一个目标完成。</li><li>再次交谈或保存后重启读档，不应重复发钱；原生任务日志的显示也需要一并检查。</li></ul>
+<p>也可自行打开游戏控制台输入 player.additem 00077E1C 3，测试原生获取物品事件；本工具不会自动执行游戏控制台命令。</p>
+<h2 id="核心-api-组合">核心 API 组合</h2>
+<div class="code-block"><div class="code-label">js<button class="copy-code">复制</button></div><pre><code>const flower = Skyrim.getForm(&quot;0x077E1C&quot;);
+const task = player.addTask({
+    id: &quot;myMod.flower-delivery&quot;,
+    title: &quot;山花委托&quot;,
+    steps: [
+        { title: &quot;收集蓝色山花&quot;, total: 3 },
+        { title: &quot;交付山花&quot; },
+        { title: &quot;领取报酬&quot; },
+    ],
+});
+const sync = () =&gt; {
+    if (task.state === &quot;active&quot; &amp;&amp; task.currentStep === 0) {
+        const count = player.getItemCount(flower);
+        if (Number.isInteger(count)) task.steps[0].setProgress(count);
+    }
+};
+const offAdded = player.on(&quot;itemAdded&quot;, sync);
+const offRemoved = player.on(&quot;itemRemoved&quot;, sync);
+sync();</code></pre></div>
+<p>完整脚本还会过滤物品事件、记录交付收据、确认双方库存变化，以及在结束后移除收集监听。上面仅展示组合关系，交付与发奖应使用完整示例的检查。</p>
+<h2 id="存档与防重复">存档与防重复</h2>
+<div class="table-wrap"><table><thead><tr><th>数据</th><th>Storage / 任务 ID</th></tr></thead><tbody><tr><td>旅人引用</td><td>demo.blue-flowers.npc</td></tr><tr><td>任务</td><td>demo.blue-flowers.v1</td></tr><tr><td>结算收据</td><td>demo.blue-flowers.receipt</td></tr></tbody></table></div>
+<p>收据先记 transferPending，再执行转交，核对双方数量后记 delivered。领奖先记 rewardPending，确认金币增加后记 rewarded，最后完成任务。</p>
+<p>读档只根据 delivered / rewarded 修复未完成的目标，不重新执行转交或发钱。pending / Uncertain 表示调用或记账中断，暂停重试并打印收据。确认引擎未改变任何数量的失败才允许重试。NPC 死亡会使未完成任务失败；已经完成的任务不会变成失败。</p>
+<p>这不是游戏存档与物品操作之间的通用事务协议。其他模组修改数量、Storage 满或异常中断时，暂停需要人工核对。不要直接删除 pending 来强行重试；先检查玩家/NPC 背包和日志，再修复收据。恢复 rewarded 不会重复发钱。示例没有删除任务或重玩同 ID 的入口，想重新试验可使用未接取任务的存档。</p>
+<h2 id="进度规则">进度规则</h2>
+<p>收集阶段使用 setProgress，背包减少会回退未完成目标；一旦收集目标完成，目标不会重新锁回。交付时再次检查实际库存，所以收集齐后丢弃/出售仍无法交付。目标完成不等于物品已交付，领奖只在确认转交成功后开放。</p>
+<p>示例按基础物品计数，不区分被偷、强化、附魔等实例；正式模组如果需要这些条件，需要增加相应实例与所有权 API。</p>
+<h2 id="日志与排查">日志与排查</h2>
+<p>所有示例日志以 [委托] 开头。原生事件初始化应有 Events: activate, inventory, death and combat sinks registered。</p>
+<ul><li>角色没出现：检查 onMounted、skse.new 与 Storage 日志。</li><li>按交互键没有自定义选项：检查 setTopic 的请求、displayed 与错误日志，并确认没有其他 NPC 对话占用菜单。</li><li>进度不动：确认 getItemCount 返回整数，物品是 00077E1C；重新与旅人交谈会对账。</li><li>日志未显示任务：检查 SkyrimJS_Tasks.esp 已在当前配置启用，以及 task.journal 状态。</li><li>收据异常：查 demo.blue-flowers.receipt；不要重复交付或自动整笔发奖。</li></ul>
+<h2 id="已做的验证">已做的验证</h2>
+<p>8 项任务核心测试与 8 项完整示例逻辑测试通过，共 16 项。示例测试覆盖正常流程、拒绝接取、已有库存、丢弃、读档、引擎拒绝、部分转交异常、记账中断、确认收据恢复和 NPC 死亡。测试使用模拟的角色、库存和事件，不能代替游戏内原生行为验证。未启动游戏、开发服务或 TypeScript 检查。</p><div class="page-navigation"><a href="status.html">← 功能与验证状态</a><a href="runtime.html">运行时与生命周期 →</a></div><footer>SkyrimJS 中文文档 · 请以对应版本的代码和验证记录为准。</footer></article><aside class="toc"><div>本页内容</div><a href="#流程">流程</a><a href="#安装示例">安装示例</a><a href="#游戏中操作">游戏中操作</a><a href="#核心-api-组合">核心 API 组合</a><a href="#存档与防重复">存档与防重复</a><a href="#进度规则">进度规则</a><a href="#日志与排查">日志与排查</a><a href="#已做的验证">已做的验证</a></aside></div></div></body></html>

@@ -1,0 +1,31 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="SkyrimJS 中文开发文档：V8、SKSE、角色、对话、任务与插件资源。"><title>角色事件监听 · SkyrimJS</title><link rel="stylesheet" href="assets/site.css"><script src="assets/search-index.js" defer></script><script src="assets/site.js" defer></script></head><body><aside class="sidebar"><a class="brand" href="index.html"><span>S</span><div>SkyrimJS<small>开发文档 · SE 1.5.97</small></div></a><div class="search"><input id="search" type="search" aria-label="搜索文档" placeholder="搜索 API / 示例…"><div id="search-results" hidden></div></div><nav><div class="nav-section">开始</div><a class="nav-link" href="index.html">项目介绍</a><a class="nav-link" href="getting-started.html">安装与第一个脚本</a><a class="nav-link" href="status.html">功能与验证状态</a><div class="nav-section">教程</div><a class="nav-link" href="collection-quest.html">完整收集任务流程</a><div class="nav-section">API</div><a class="nav-link" href="runtime.html">运行时与生命周期</a><a class="nav-link" href="actors.html">玩家、NPC 与物品</a><a class="nav-link active" href="events.html">角色事件监听</a><a class="nav-link" href="combat.html">战斗与角色姿态</a><a class="nav-link" href="dialogue.html">原生多轮对话</a><a class="nav-link" href="plugins.html">插件导入与动作</a><a class="nav-link" href="storage-timers.html">存储与计时器</a><a class="nav-link" href="tasks.html">任务与原生日志</a><div class="nav-section">工具</div><a class="nav-link" href="explorer.html">ESP 资源浏览器</a><div class="nav-section">维护</div><a class="nav-link" href="troubleshooting.html">日志与常见问题</a><a class="nav-link" href="changelog.html">更新日志</a><a class="nav-link" href="contributing.html">文档维护与发布</a></nav><div class="sidebar-footer">开发预览 · b450bd1<br>实现与验证状态分别记录</div></aside><div class="content-shell"><header><span>API / 角色事件监听</span><a href="tools/esp-explorer/index.html">ESP Explorer ↗</a></header><div class="reading"><article><h1 id="角色事件监听">角色事件监听</h1>
+<h2 id="actor-on-name-callback">actor.on(name, callback)</h2>
+<p>在 onMounted 中注册当前存档的角色监听，返回取消监听的函数。玩家和 NPC 都支持。</p>
+<div class="code-block"><div class="code-label">js<button class="copy-code">复制</button></div><pre><code>skse.onMounted(() =&gt; {
+    const player = skse.player[0];
+    const off = player.on(&quot;itemAdded&quot;, e =&gt; {
+        skse.console.log(&quot;获得物品&quot;, e.itemFormId.toString(16), e.count);
+    });
+    // 不再需要时调用 off()。重复取消返回 false。
+});</code></pre></div>
+<p>最多同时注册 256 个监听；不支持的事件名、非法参数、失效角色或未进入存档时抛 TypeError。off 首次取消有效监听返回 true，重复取消/换档后取消返回 false。回调同步执行，不等待返回的 Promise。</p>
+<h2 id="支持的事件">支持的事件</h2>
+<p>所有 e 都是只读对象，包含 type 和 actor。actor 是被监听的角色包装。比较角色使用 formId，包装对象不保证相同 JS 对象身份。</p>
+<div class="table-wrap"><table><thead><tr><th>事件</th><th>字段与含义</th></tr></thead><tbody><tr><td>itemAdded</td><td>item、itemFormId、count、otherContainerFormId；背包增加</td></tr><tr><td>itemRemoved</td><td>同上；背包减少</td></tr><tr><td>activate</td><td>activator、activatorFormId；该角色被交互</td></tr><tr><td>death</td><td>killer、killerFormId；原生死亡完成事件，不是濒死阶段</td></tr><tr><td>combatStateChanged</td><td>target、targetFormId、state；原生战斗状态变更</td></tr></tbody></table></div>
+<p>物品 count 是本次事件的正数量，不代表背包最终数量。otherContainerFormId 是另一容器引用 ID；世界拾取/销毁等情况可能是 0。item 是可用于库存方法的插件物品包装；动态 FF 物品或无法解析来源插件时为 undefined，itemFormId 仍提供原始 ID。非物品记录仍可能出现在原生事件中，库存方法会拒绝不支持的类型。</p>
+<p>activator / killer / target 只有在当前能解析为角色时才有包装，否则为 undefined；相应 FormId 仍可读取，无参与者时为 0。combat 的 state 为原生值：0 无战斗、1 战斗、2 搜索；它不会自动执行 setStatus。</p>
+<h2 id="监听交互">监听交互</h2>
+<div class="code-block"><div class="code-label">js<button class="copy-code">复制</button></div><pre><code>hero.on(&quot;activate&quot;, e =&gt; {
+    if (e.activatorFormId !== player.formId) return;
+    hero.setTopic({
+        target: player,
+        topics: [{ topicText: &quot;需要帮忙吗？&quot;, options: [{ text: &quot;稍后再说。&quot; }] }],
+    });
+});</code></pre></div>
+<p>activate 是发生后的通知，不能阻止原生交互。setTopic 可接入同一 NPC 已经打开的原生对话菜单；另一个 NPC 的菜单仍须先关闭。同一时间只允许一个 JS 对话会话。</p>
+<h2 id="执行与存档寿命">执行与存档寿命</h2>
+<p>原生事件线程只复制 ID/数量等值，放入有界队列；JS 回调在 SKSE 游戏任务队列并持有 V8 锁时执行。单个回调异常写日志，继续通知其他有效监听。回调可以取消自身或其他监听，新增监听不会收到注册之前入队的事件。</p>
+<p>进入新游戏/读档时清理旧监听和旧事件，不序列化函数。每次 onMounted 必须重新注册，不应通过 Storage 保存 off 或事件对象。NPC 包装跨存档后失效，重新从 Storage 取出。</p>
+<p>事件队列最多 1024 项；超出会丢弃并记录错误，加载过渡期间的事件也会丢弃。收集任务应在挂载、事件通知和交付前使用 getItemCount 对账，不能只累计 e.count。尚未提供 locationChanged、通用 Papyrus 事件、事件阻止、once 或事件过滤选项。</p>
+<h2 id="原生依据与验证状态">原生依据与验证状态</h2>
+<p>事件布局依据本地 SKSE 2.0.20 与 <a href="https://github.com/CharmedBaryon/CommonLibSSE-NG/blob/main/include/RE/S/ScriptEventSourceHolder.h">CommonLibSSE-NG ScriptEventSourceHolder</a>、<a href="https://github.com/CharmedBaryon/CommonLibSSE-NG/blob/main/include/RE/T/TESActivateEvent.h">TESActivateEvent</a>。旧 SKSE 头文件的部分事件源注释存在偏移，当前使用 SE 1.5.97 对应的实际布局。绑定已编译通过，事件到达和菜单接入仍需游戏内验证。</p><div class="page-navigation"><a href="actors.html">← 玩家、NPC 与物品</a><a href="combat.html">战斗与角色姿态 →</a></div><footer>SkyrimJS 中文文档 · 请以对应版本的代码和验证记录为准。</footer></article><aside class="toc"><div>本页内容</div><a href="#actor-on-name-callback">actor.on(name, callback)</a><a href="#支持的事件">支持的事件</a><a href="#监听交互">监听交互</a><a href="#执行与存档寿命">执行与存档寿命</a><a href="#原生依据与验证状态">原生依据与验证状态</a></aside></div></div></body></html>
