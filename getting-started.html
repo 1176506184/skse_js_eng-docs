@@ -1,7 +1,18 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="SkyrimJS 中文开发文档：V8、SKSE、角色、对话、任务与插件资源。"><title>安装与第一个脚本 · SkyrimJS</title><link rel="stylesheet" href="assets/site.css"><script src="assets/search-index.js" defer></script><script src="assets/site.js" defer></script></head><body><aside class="sidebar"><a class="brand" href="index.html"><span>S</span><div>SkyrimJS<small>开发文档 · SE 1.5.97</small></div></a><div class="search"><input id="search" type="search" aria-label="搜索文档" placeholder="搜索 API / 示例…"><div id="search-results" hidden></div></div><nav><div class="nav-section">开始</div><a class="nav-link" href="index.html">项目介绍</a><a class="nav-link active" href="getting-started.html">安装与第一个脚本</a><a class="nav-link" href="status.html">功能与验证状态</a><div class="nav-section">教程</div><a class="nav-link" href="collection-quest.html">完整收集任务流程</a><div class="nav-section">API</div><a class="nav-link" href="runtime.html">运行时与生命周期</a><a class="nav-link" href="actors.html">玩家、NPC 与物品</a><a class="nav-link" href="events.html">角色事件监听</a><a class="nav-link" href="combat.html">战斗与角色姿态</a><a class="nav-link" href="dialogue.html">原生多轮对话</a><a class="nav-link" href="plugins.html">插件导入与动作</a><a class="nav-link" href="storage-timers.html">存储与计时器</a><a class="nav-link" href="tasks.html">任务与原生日志</a><div class="nav-section">工具</div><a class="nav-link" href="explorer.html">ESP 资源浏览器</a><div class="nav-section">维护</div><a class="nav-link" href="troubleshooting.html">日志与常见问题</a><a class="nav-link" href="changelog.html">更新日志</a><a class="nav-link" href="contributing.html">文档维护与发布</a></nav><div class="sidebar-footer">开发预览 · b450bd1<br>实现与验证状态分别记录</div></aside><div class="content-shell"><header><span>开始 / 安装与第一个脚本</span><a href="tools/esp-explorer/index.html">ESP Explorer ↗</a></header><div class="reading"><article><h1 id="安装与第一个脚本">安装与第一个脚本</h1>
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="SkyrimJS 中文开发文档：V8、SKSE、角色、对话、任务与插件资源。"><title>框架安装教程 · SkyrimJS</title><link rel="stylesheet" href="assets/site.css"><script src="assets/search-index.js" defer></script><script src="assets/site.js" defer></script></head><body><aside class="sidebar"><a class="brand" href="index.html"><span>S</span><div>SkyrimJS<small>开发文档 · SE 1.5.97</small></div></a><div class="search"><input id="search" type="search" aria-label="搜索文档" placeholder="搜索 API / 示例…"><div id="search-results" hidden></div></div><nav><div class="nav-section">开始</div><a class="nav-link" href="index.html">项目介绍</a><a class="nav-link active" href="getting-started.html">框架安装教程</a><a class="nav-link" href="status.html">功能与验证状态</a><div class="nav-section">教程</div><a class="nav-link" href="collection-quest.html">完整收集任务流程</a><div class="nav-section">API</div><a class="nav-link" href="runtime.html">运行时与生命周期</a><a class="nav-link" href="actors.html">玩家、NPC 与物品</a><a class="nav-link" href="events.html">角色事件监听</a><a class="nav-link" href="combat.html">战斗与角色姿态</a><a class="nav-link" href="dialogue.html">原生多轮对话</a><a class="nav-link" href="plugins.html">插件导入与动作</a><a class="nav-link" href="storage-timers.html">存储与计时器</a><a class="nav-link" href="tasks.html">任务与原生日志</a><div class="nav-section">工具</div><a class="nav-link" href="explorer.html">ESP 资源浏览器</a><div class="nav-section">维护</div><a class="nav-link" href="troubleshooting.html">日志与常见问题</a><a class="nav-link" href="changelog.html">更新日志</a><a class="nav-link" href="contributing.html">文档维护与发布</a></nav><div class="sidebar-footer">开发预览 · b6edab7<br>实现与验证状态分别记录</div></aside><div class="content-shell"><header><span>开始 / 框架安装教程</span><a href="tools/esp-explorer/index.html">ESP Explorer ↗</a></header><div class="reading"><article><h1 id="skyrimjs-框架安装教程">SkyrimJS 框架安装教程</h1>
+<p>安装好框架后，写 JS 不需要重新编译 DLL，修改脚本后重启游戏即可。V8 已编入 SkyrimJS.dll，普通玩家无需安装 Visual Studio、Node.js 或单独的 V8。</p>
 <h2 id="环境">环境</h2>
-<div class="table-wrap"><table><thead><tr><th>项目</th><th>当前目标</th></tr></thead><tbody><tr><td>游戏</td><td>Skyrim Special Edition 1.5.97，64 位 Windows</td></tr><tr><td>SKSE</td><td>2.0.20</td></tr><tr><td>引擎</td><td>项目固定配置的 V8 13.8.66</td></tr><tr><td>构建</td><td>Visual Studio 2022 C++ 工具、Windows SDK、CMake</td></tr><tr><td>文档与离线工具</td><td>新版 Chrome / Edge；构建文档与 CLI 需要 Node.js</td></tr></tbody></table></div>
-<h2 id="安装文件">安装文件</h2>
+<div class="table-wrap"><table><thead><tr><th>项目</th><th>当前目标</th></tr></thead><tbody><tr><td>游戏</td><td>Skyrim Special Edition 1.5.97，64 位 Windows</td></tr><tr><td>SKSE</td><td>2.0.20</td></tr><tr><td>引擎</td><td>项目固定配置的 V8 13.8.66</td></tr><tr><td>AE / VR / 其他运行时</td><td>当前未适配</td></tr></tbody></table></div>
+<p>在游戏目录找到 SkyrimSE.exe，右键打开属性，在详细信息中确认版本。以运行时版本号为准，商店中的游戏名称不能证明版本兼容。</p>
+<h2 id="第一步-准备框架文件">第一步：准备框架文件</h2>
+<div class="table-wrap"><table><thead><tr><th>文件</th><th>作用</th><th>是否必需</th></tr></thead><tbody><tr><td>SkyrimJS.dll</td><td>SKSE 插件，包含 V8 与游戏 API</td><td>必需</td></tr><tr><td>main.js</td><td>当前 JS 入口，下方提供最小示例</td><td>必需</td></tr><tr><td>SkyrimJS_Tasks.esp</td><td>原生任务日志载体</td><td>使用原生任务日志时启用</td></tr></tbody></table></div>
+<p>先取得作者提供的 SkyrimJS.dll。当前文档站发布文档和示例脚本，尚未提供公开的 DLL 安装包；如果只有 ESP，还没有取得框架。已有源码构建产物的位置见后面的“源码维护者”。</p>
+<p>SkyrimJS_Tasks.esp 不包含 V8，也不会独立执行 JS。</p>
+<h2 id="第二步-安装对应的-skse">第二步：安装对应的 SKSE</h2>
+<p>到 <a href="https://skse.silverlock.org/">SKSE 官方网站</a> 取得 Special Edition 2.0.20 / game version 1.5.97，按照压缩包中的 readme 安装。已安装该版本可跳过。</p>
+<ul><li>将 skse64_loader.exe、skse64_1_5_97.dll 和 skse64_steam_loader.dll 放在 SkyrimSE.exe 同一层。</li><li>将 SKSE 包中 Data/Scripts 下的 .pex 文件安装到游戏有效的 Data/Scripts 中。</li><li>启动入口使用 skse64_loader.exe，通过 MO2 管理模组时，从 MO2 中启动它。</li></ul>
+<p>SKSE 的运行时 DLL 放游戏根目录，SkyrimJS.dll 放 Data/SKSE/Plugins，目录不同。</p>
+<h2 id="第三步-安装框架">第三步：安装框架</h2>
+<p>下图表示游戏运行时应看到的目录。选择下方 MO2、Vortex 或手动方式安装：</p>
 <div class="code-block"><div class="code-label">text<button class="copy-code">复制</button></div><pre><code>SkyrimSE/
   skse64_loader.exe
   Data/
@@ -11,18 +22,46 @@
         SkyrimJS.dll
         SkyrimJS/
           main.js
-          SkyrimJS.log</code></pre></div>
+          SkyrimJS.log           # 运行后自动生成，不必提前创建</code></pre></div>
 <p><code>SkyrimJS_Tasks.esp</code> 只在使用原生任务日志时需要启用。缺失载体时 JS 任务进度仍可保存，<code>task.journal</code> 返回 <code>&quot;unavailable&quot;</code>，日志会提示缺失。</p>
 <p>使用模组管理器时，把上述 Data 内容作为模组安装，并启用任务载体及所导入插件的依赖。游戏外能找到文件，不代表当前管理器配置已启用它。</p>
-<h2 id="第一个入口">第一个入口</h2>
-<p>把下面内容以 UTF-8 保存为 <code>Data/SKSE/Plugins/SkyrimJS/main.js</code>：</p>
+<h3 id="mo2-创建空模组">MO2：创建空模组</h3>
+<p>MO2 支持空模组和归档安装，相关实现见 <a href="https://github.com/ModOrganizer2/modorganizer/blob/master/src/modlistviewactions.cpp">MO2 官方项目</a>。只有散文件时可以这样安装，菜单名称可能随版本和语言不同：</p>
+<ul><li>在左侧模组列表的菜单中找到“创建空模组 / Create Empty Mod”，命名为 SkyrimJS。</li><li>打开该模组文件夹，放入下列文件。空模组根目录直接放 SKSE，不额外套 Data。</li><li>在左侧勾选 SkyrimJS。</li><li>需要原生任务日志时，在右侧 Plugins 列表勾选 SkyrimJS_Tasks.esp。</li><li>在右侧 Data 视图核对 DLL 和 main.js 的最终来源，确认没有被其他模组同名文件覆盖。</li><li>将可执行程序设为游戏根目录中的 skse64_loader.exe，从 MO2 启动它。</li></ul>
+<div class="code-block"><div class="code-label">text<button class="copy-code">复制</button></div><pre><code>MO2 的 mods/
+  SkyrimJS/
+    SkyrimJS_Tasks.esp            # 原生任务日志可选
+    SKSE/
+      Plugins/
+        SkyrimJS.dll
+        SkyrimJS/
+          main.js</code></pre></div>
+<p>DLL 不会作为 ESP 出现在右侧 Plugins 列表。左侧启用模组保证文件可见，右侧勾选 ESP 用于启用任务载体。已有正确目录结构的 Mod 压缩包，也可使用“从归档安装模组”，安装后核对相同的有效目录。</p>
+<h3 id="vortex-安装并部署">Vortex：安装并部署</h3>
+<p>先让 Vortex 管理 Skyrim Special Edition，并配置 SKSE 启动工具。使用作者提供的 Mod 压缩包；只有散文件时，可按下面结构建立临时目录，将该目录内的内容压缩成 ZIP。</p>
+<div class="code-block"><div class="code-label">text<button class="copy-code">复制</button></div><pre><code>ZIP 内直接包含：
+  SkyrimJS_Tasks.esp              # 原生任务日志可选
+  SKSE/
+    Plugins/
+      SkyrimJS.dll
+      SkyrimJS/
+        main.js</code></pre></div>
+<ul><li>在 Mods 页面使用“Install From File / 从文件安装”，选择 ZIP。</li><li>安装后启用该模组，执行“Deploy Mods / 部署模组”。</li><li>同名 main.js 冲突时选择本次要运行的脚本版本，再重新部署。</li><li>需要原生任务日志时，在 Plugins 页面启用 SkyrimJS_Tasks.esp。</li><li>通过配置好的 SKSE 工具启动游戏。</li></ul>
+<p>按钮含义见 <a href="https://github.com/Nexus-Mods/Vortex/wiki/MODDINGWIKI-Users-UI-Mods-section">Vortex 官方 Mods 页面说明</a>，SKSE 工具配置见 <a href="https://github.com/Nexus-Mods/Vortex/wiki/MODDINGWIKI-Users-GameGuides-Modding-Skyrim-Special-Edition-with-Vortex">Vortex 官方 Skyrim 指南</a>。</p>
+<h3 id="手动安装-复制到游戏目录">手动安装：复制到游戏目录</h3>
+<p>游戏退出后，把 DLL 放进游戏 Data/SKSE/Plugins，把 main.js 放进 Data/SKSE/Plugins/SkyrimJS。需要的文件夹不存在时自行创建。需要原生任务日志时，将 SkyrimJS_Tasks.esp 放进 Data，并在实际使用的插件列表中启用。</p>
+<p>不要把脚本放在 DLL 旁边，也不要套成 Data/Data/SKSE。最后运行 skse64_loader.exe。使用 MO2 配置的用户仍从 MO2 启动，以保证其虚拟文件和插件列表生效。</p>
+<h2 id="第四步-创建最小-main-js">第四步：创建最小 main.js</h2>
+<p>把下面内容以 UTF-8 保存为有效的 <code>Data/SKSE/Plugins/SkyrimJS/main.js</code>。文件名不能是 main.js.txt：</p>
 <div class="code-block"><div class="code-label">js<button class="copy-code">复制</button></div><pre><code>skse.console.log(&quot;脚本启动，版本：&quot;, skse.runtimeVersion.toString(16));
 
 skse.onMounted(() =&gt; {
     skse.console.log(&quot;进入存档，玩家血量：&quot;, skse.player[0].health);
 });</code></pre></div>
 <p>通过 SKSE 启动游戏。主菜单阶段执行入口；继续存档或新建游戏之后才触发 <code>onMounted</code>，游戏对象操作放进这个回调。</p>
-<h2 id="先看日志">先看日志</h2>
+<p>该脚本只输出日志，不生成 NPC 或添加物品。</p>
+<h2 id="第五步-检查日志">第五步：检查日志</h2>
+<p>启动到主菜单后应出现入口日志；继续存档或新游戏之后应再出现 onMounted 日志。下面列出关键行，中间可能夹有其他初始化输出：</p>
 <div class="code-block"><div class="code-label">text<button class="copy-code">复制</button></div><pre><code>SkyrimJS loaded; waiting for DataLoaded
 脚本启动，版本： 1050610
 main.js executed
@@ -30,13 +69,21 @@ onMounted dispatch begin
 进入存档，玩家血量： ...
 onMounted dispatched</code></pre></div>
 <p>日志默认写到插件脚本目录。MO2 可能重定向到该实例的 <code>overwrite/SKSE/Plugins/SkyrimJS/SkyrimJS.log</code>。</p>
-<h2 id="从源码构建">从源码构建</h2>
+<p>MO2 中也应检查文件所属模组或自定义输出模组。框架日志与 SKSE 自身日志是两个文件；SKSE 自身的日志一般位于 Windows“文档”目录下 My Games/Skyrim Special Edition/SKSE，系统重定向时路径可能不同。SkyrimJS.log 采用追加写入，查看文件末尾和修改时间来判断本次启动。</p>
+<h2 id="常见安装问题">常见安装问题</h2>
+<div class="table-wrap"><table><thead><tr><th>现象</th><th>优先检查</th></tr></thead><tbody><tr><td>完全没有 SkyrimJS.log</td><td>游戏 1.5.97 / SKSE 2.0.20、从 SKSE 启动、DLL 有效目录、MO2 overwrite</td></tr><tr><td>main.js was not found</td><td>脚本应在 SkyrimJS 文件夹内，不能放在 DLL 旁边或多套一层 Data</td></tr><tr><td>入口空文件或过大</td><td>当前需要非空 UTF-8 脚本，最大 4 MiB</td></tr><tr><td>主菜单有日志，没输出血量</td><td>继续存档或进入新游戏，等待 onMounted</td></tr><tr><td>右侧 Plugins 找不到 DLL</td><td>正常；DLL 由 SKSE 加载，ESP 才在 Plugins 列表中启用</td></tr><tr><td>任务进度存在但原生日志没有</td><td>当前配置是否启用 SkyrimJS_Tasks.esp，查看 task.journal 与错误日志</td></tr><tr><td>修改 JS 后还是旧代码</td><td>重启整个游戏；检查 MO2 文件来源或 Vortex 冲突规则及部署</td></tr></tbody></table></div>
+<p>版本不匹配时框架查询接口会拒绝加载，应查看 SKSE 加载日志。更多情况见 <a href="troubleshooting.html">日志与常见问题</a>。</p>
+<h2 id="源码维护者">源码维护者</h2>
+<p>普通使用者取得 DLL 后按上述步骤安装即可。维护框架源码时才需要 VS 2022 C++、Windows SDK、CMake；文档构建和 CLI 才需要 Node.js。</p>
 <p>V8 头文件、生成配置与静态库必须来自同一份固定版本。仓库的 <code>scripts/prepare-v8.ps1</code> 和 <code>scripts/build-plugin.ps1</code> 用于准备依赖与构建 DLL；详细本机准备过程保留在源码仓库的 Windows setup 文档。</p>
 <div class="code-block"><div class="code-label">powershell<button class="copy-code">复制</button></div><pre><code>cmake --build build --config Release --target skse_js_eng
 node scripts/build-task-carrier.cjs
 node scripts/build-docs.cjs</code></pre></div>
 <p>DLL 位于 <code>build/Release/SkyrimJS.dll</code>，任务 ESP 位于 <code>build/package/Data/SkyrimJS_Tasks.esp</code>。覆盖 DLL 和 ESP 前先退出游戏。</p>
 <h2 id="重启与读档">重启与读档</h2>
+<div class="table-wrap"><table><thead><tr><th>修改内容</th><th>需要的操作</th></tr></thead><tbody><tr><td>JS 任务、对话或角色逻辑</td><td>修改实际生效的 main.js，必要时重新部署，然后重启游戏；无需重编译 DLL</td></tr><tr><td>C++ 原生 API / V8 框架</td><td>维护者重新构建 DLL，使用者安装对应新 DLL</td></tr><tr><td>原生任务日志载体</td><td>安装与框架版本配套的 ESP，并在当前配置启用</td></tr></tbody></table></div>
 <p>当前不支持热更新入口。修改 <code>main.js</code> 后重启游戏进程。进入另一个存档会使原有 NPC、任务句柄和计时器失效；在新的 <code>onMounted</code> 中重新取得它们。</p>
+<p>当前只加载一个有效的 main.js，没有多个 JS 模组自动发现功能。同一路径的多个脚本会互相覆盖，不会自动合并。import @skse/某插件.esp 是查询插件资源，不是执行内嵌 JS。</p>
+<p>保留存档对应的 SKSE co-save，Storage 与 JS 任务状态通过它恢复。读档后在 onMounted 重新取得句柄和注册事件监听。新增原生能力的实际验证范围见 <a href="status.html">功能状态</a>。</p>
 <h2 id="完整示例">完整示例</h2>
-<p><a href="collection-quest.html">完整收集任务流程</a> 提供可下载脚本和带备份的安装器，串联 NPC、交互事件、物品交付、奖励和任务存档。</p><div class="page-navigation"><a href="index.html">← 项目介绍</a><a href="status.html">功能与验证状态 →</a></div><footer>SkyrimJS 中文文档 · 请以对应版本的代码和验证记录为准。</footer></article><aside class="toc"><div>本页内容</div><a href="#环境">环境</a><a href="#安装文件">安装文件</a><a href="#第一个入口">第一个入口</a><a href="#先看日志">先看日志</a><a href="#从源码构建">从源码构建</a><a href="#重启与读档">重启与读档</a><a href="#完整示例">完整示例</a></aside></div></div></body></html>
+<p><a href="collection-quest.html">完整收集任务流程</a> 提供可下载脚本和带备份的安装器，串联 NPC、交互事件、物品交付、奖励和任务存档。</p><div class="page-navigation"><a href="index.html">← 项目介绍</a><a href="status.html">功能与验证状态 →</a></div><footer>SkyrimJS 中文文档 · 请以对应版本的代码和验证记录为准。</footer></article><aside class="toc"><div>本页内容</div><a href="#环境">环境</a><a href="#第一步-准备框架文件">第一步：准备框架文件</a><a href="#第二步-安装对应的-skse">第二步：安装对应的 SKSE</a><a href="#第三步-安装框架">第三步：安装框架</a><a href="#第四步-创建最小-main-js">第四步：创建最小 main.js</a><a href="#第五步-检查日志">第五步：检查日志</a><a href="#常见安装问题">常见安装问题</a><a href="#源码维护者">源码维护者</a><a href="#重启与读档">重启与读档</a><a href="#完整示例">完整示例</a></aside></div></div></body></html>
