@@ -17,12 +17,14 @@ skse.onMounted(() => {
     let hero = skse.Storage.get(NPC_KEY);
     const spawned = !hero;
     if (!hero) {
-        hero = skse.new({ formId: "0x001034E4" }); // WEFarmerMale
+        hero = skse.new({ formId: "0x001034E4", name: "旅人" }); // WEFarmerMale
         if (!hero) return;
         const position = player.position;
         if (!position || !hero.setPosition({ ...position, x: position.x + 120 })) return;
         skse.Storage.set(NPC_KEY, hero);
     }
+    // 已缓存的角色不会重新执行 new，单独更新该实例的名字。
+    if (hero.name !== "旅人") hero.setName("旅人");
     let task = skse.Tasks.get(TASK_ID);
     const inventoryListeners = [];
     function stopInventoryListeners() { inventoryListeners.splice(0).forEach(off => off()); }
