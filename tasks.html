@@ -1,0 +1,64 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="SkyrimJS 中文开发文档：V8、SKSE、角色、对话、任务与插件资源。"><title>任务与原生日志 · SkyrimJS</title><link rel="stylesheet" href="assets/site.css"><script src="assets/search-index.js" defer></script><script src="assets/site.js" defer></script></head><body><aside class="sidebar"><a class="brand" href="index.html"><span>S</span><div>SkyrimJS<small>开发文档 · SE 1.5.97</small></div></a><div class="search"><input id="search" type="search" aria-label="搜索文档" placeholder="搜索 API / 示例…"><div id="search-results" hidden></div></div><nav><div class="nav-section">开始</div><a class="nav-link" href="index.html">项目介绍</a><a class="nav-link" href="getting-started.html">安装与第一个脚本</a><a class="nav-link" href="status.html">功能与验证状态</a><div class="nav-section">API</div><a class="nav-link" href="runtime.html">运行时与生命周期</a><a class="nav-link" href="actors.html">玩家、NPC 与物品</a><a class="nav-link" href="combat.html">战斗与角色姿态</a><a class="nav-link" href="dialogue.html">原生多轮对话</a><a class="nav-link" href="plugins.html">插件导入与动作</a><a class="nav-link" href="storage-timers.html">存储与计时器</a><a class="nav-link active" href="tasks.html">任务与原生日志</a><div class="nav-section">工具</div><a class="nav-link" href="explorer.html">ESP 资源浏览器</a><div class="nav-section">维护</div><a class="nav-link" href="troubleshooting.html">日志与常见问题</a><a class="nav-link" href="changelog.html">更新日志</a><a class="nav-link" href="contributing.html">文档维护与发布</a></nav><div class="sidebar-footer">开发预览 · 8641830<br>实现与验证状态分别记录</div></aside><div class="content-shell"><header><span>API / 任务与原生日志</span><a href="tools/esp-explorer/index.html">ESP Explorer ↗</a></header><div class="reading"><article><h1 id="任务与原生日志">任务与原生日志</h1>
+<p>任务 API 把“JS 保存的任务状态”和“原生任务日志显示”连接起来。顺序目标、进度、失败、取消、奖励回调已实现；原生日志适配已经编译，尚待游戏内验证。</p>
+<h2 id="最简单的任务">最简单的任务</h2>
+<div class="code-block"><div class="code-label">js<button class="copy-code">复制</button></div><pre><code>skse.onMounted(() =&gt; {
+    const player = skse.player[0];
+    const task = player.addTask({
+        id: &quot;myMod.testTask&quot;,
+        title: &quot;测试任务&quot;,
+        description: &quot;这是一个测试任务&quot;,
+        onComplete: () =&gt; skse.console.log(&quot;任务完成&quot;),
+    });
+
+    // 满足你自己的游戏条件时再调用：
+    // task.complete();
+});</code></pre></div>
+<p>addTask 只能由当前玩家调用。游戏尚未加载时拒绝操作。没有 steps 的任务保持 active，等待 complete / fail / cancel。</p>
+<h2 id="多阶段任务">多阶段任务</h2>
+<div class="code-block"><div class="code-label">js<button class="copy-code">复制</button></div><pre><code>const task = player.addTask({
+    id: &quot;myMod.delivery&quot;,
+    title: &quot;一份委托&quot;,
+    description: &quot;帮助 Hero 收集物品。&quot;,
+    steps: [
+        { title: &quot;与 Hero 交谈&quot; },
+        { title: &quot;收集三瓶牛奶&quot;, total: 3 },
+        { title: &quot;返回 Hero 身边&quot; },
+    ],
+    onComplete: ({ task }) =&gt; {
+        skse.console.log(task.title, &quot;已完成&quot;);
+        // 在这里编写发放奖励的代码。
+    },
+    onFail: ({ reason }) =&gt; skse.console.log(&quot;失败：&quot;, reason),
+    onCancel: () =&gt; skse.console.log(&quot;已取消&quot;),
+});
+
+// 在对应的对话/物品逻辑回调内推进，以下语句不应全部立即执行：
+// task.steps[0].complete();
+// task.steps[1].addProgress(1);
+// task.steps[2].complete();</code></pre></div>
+<p>目标按数组顺序进行。total 默认 1，达到后自动激活下一项；所有目标完成后自动结束任务。这个系统不自动监听获得物品、走到位置或对话，需要脚本在实际条件满足时更新进度。</p>
+<h2 id="配置">配置</h2>
+<div class="table-wrap"><table><thead><tr><th>字段</th><th>合同</th></tr></thead><tbody><tr><td>id</td><td>建议提供；1–128 个 ASCII 字母、数字或 <code>_ . : -</code></td></tr><tr><td>title</td><td>必填非空文本，最多 256 UTF-16 码元</td></tr><tr><td>description</td><td>可选，默认空串，最多 4096 码元</td></tr><tr><td>steps</td><td>可选数组，最多 32 项</td></tr><tr><td>steps[].title</td><td>非空，最多 256 码元</td></tr><tr><td>steps[].total</td><td>正 int32，默认 1</td></tr><tr><td>onComplete / onFail / onCancel</td><td>可选同步函数，接收 <code>{ task, reason }</code></td></tr></tbody></table></div>
+<p>文本不能包含 NUL。任务序列化值额外限制 60 KiB，仍计入 Storage 每存档 1 MiB 的总上限。</p>
+<p>省略 id 时按配置生成确定性 ID，同配置会复用；改变标题、说明或目标会改变自动 ID。正式模组应使用固定、带命名空间的 ID。</p>
+<h2 id="返回对象">返回对象</h2>
+<div class="table-wrap"><table><thead><tr><th>属性</th><th>含义</th></tr></thead><tbody><tr><td>id / title / description</td><td>任务定义</td></tr><tr><td>state</td><td>active / completed / failed / cancelled</td></tr><tr><td>reason</td><td>失败原因；其他情况通常为空串</td></tr><tr><td>currentStep</td><td>当前目标下标，0 起；没有目标或已结束时为 -1</td></tr><tr><td>steps</td><td>冻结的目标包装数组</td></tr><tr><td>journal</td><td>native 或 unavailable，表示最近一次日志同步结果</td></tr></tbody></table></div>
+<p>任务与目标包装只读；通过方法修改进度。</p>
+<div class="table-wrap"><table><thead><tr><th>方法</th><th>行为</th></tr></thead><tbody><tr><td>task.complete()</td><td>无目标时完成；有未完成目标时拒绝跳过</td></tr><tr><td>task.fail(reason = &quot;&quot;)</td><td>标记失败并调用 onFail</td></tr><tr><td>task.cancel()</td><td>标记取消并调用 onCancel</td></tr><tr><td>task.refreshJournal()</td><td>重试同步原生日志，返回布尔值</td></tr><tr><td>step.complete()</td><td>完成当前目标</td></tr><tr><td>step.addProgress(amount = 1)</td><td>正 int32 增量，超过 total 会钳制到 total</td></tr></tbody></table></div>
+<p>修改成功返回 true；重复完成、操作已结束任务或尚未激活的目标返回 false，不会越过下一目标。非法参数会抛出异常，宿主回调入口会记录。</p>
+<p>step 的属性有 title、total、progress、state；state 为 locked / active / completed / inactive。任务失败或取消后，未完成目标为 inactive。</p>
+<h2 id="获取已有任务">获取已有任务</h2>
+<div class="code-block"><div class="code-label">js<button class="copy-code">复制</button></div><pre><code>skse.onMounted(() =&gt; {
+    const task = skse.Tasks.get(&quot;myMod.delivery&quot;);
+    const tasks = skse.Tasks.list();
+});</code></pre></div>
+<p>get 缺失返回 undefined；list 返回只读数组。addTask 同 ID 返回当前存档已有包装并重新绑定回调，不重置进度。相同 ID 的步骤数、顺序、标题、total 需保持不变，变更时当前版本要求新 ID 或显式迁移策略；暂不提供重置/删除 API。</p>
+<h2 id="保存与奖励">保存与奖励</h2>
+<p>每次进度变更先写入任务状态，再调用结束回调。回调抛错会记录日志，不倒退状态或自动重试奖励。不要在 onComplete 中假定奖励事务能与游戏存档原子提交。</p>
+<p>读档恢复状态不重新触发结束回调。函数不序列化，必须在每次 onMounted 中用同一配置 addTask 绑定当前存档的函数。旧任务句柄在换档后抛出明确错误，禁止影响新存档。</p>
+<p>已结束任务仍保留记录，占用槽位，避免 ID 复用造成奖励重复。当前每个存档最多 32 个任务，含已完成、失败、取消任务。</p>
+<h2 id="原生任务日志安装">原生任务日志安装</h2>
+<p>运行 <code>node scripts/build-task-carrier.cjs</code> 生成自有的 <code>SkyrimJS_Tasks.esp</code>，安装到 Data 并启用。它是带 ESL 标记的 ESP，包含 32 个空 Quest 槽位，每槽 33 个目标，不复制其他模组或游戏记录。</p>
+<p>框架只修改这个载体的任务，不接管其他 ESP 的 Quest。标题映射为原生任务名；说明作为目标区中的说明行显示；步骤显示为原生目标，数量目标附带进度。当前没有地图目标、任务别名、原生日志描述段落、语音、自动条件或完整 CK 任务脚本。</p>
+<p>界面已打开时未必立即刷新，必要时关闭再打开任务日志。日志显示是开发中的原生适配，尚未在游戏内确认全部生命周期；存档进度核心有独立回归测试。先使用测试存档。</p>
+<p>没有启用载体时 JS 任务继续工作，journal 为 unavailable。看到启动 pending 提示时可稍后 refreshJournal，或再次 addTask 同 ID 重试。取消任务会隐藏载体目标；原生已完成/失败任务的具体显示仍需验证。</p><div class="page-navigation"><a href="storage-timers.html">← 存储与计时器</a><a href="explorer.html">ESP 资源浏览器 →</a></div><footer>SkyrimJS 中文文档 · 请以对应版本的代码和验证记录为准。</footer></article><aside class="toc"><div>本页内容</div><a href="#最简单的任务">最简单的任务</a><a href="#多阶段任务">多阶段任务</a><a href="#配置">配置</a><a href="#返回对象">返回对象</a><a href="#获取已有任务">获取已有任务</a><a href="#保存与奖励">保存与奖励</a><a href="#原生任务日志安装">原生任务日志安装</a></aside></div></div></body></html>

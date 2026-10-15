@@ -1,0 +1,22 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="SkyrimJS 中文开发文档：V8、SKSE、角色、对话、任务与插件资源。"><title>ESP 资源浏览器 · SkyrimJS</title><link rel="stylesheet" href="assets/site.css"><script src="assets/search-index.js" defer></script><script src="assets/site.js" defer></script></head><body><aside class="sidebar"><a class="brand" href="index.html"><span>S</span><div>SkyrimJS<small>开发文档 · SE 1.5.97</small></div></a><div class="search"><input id="search" type="search" aria-label="搜索文档" placeholder="搜索 API / 示例…"><div id="search-results" hidden></div></div><nav><div class="nav-section">开始</div><a class="nav-link" href="index.html">项目介绍</a><a class="nav-link" href="getting-started.html">安装与第一个脚本</a><a class="nav-link" href="status.html">功能与验证状态</a><div class="nav-section">API</div><a class="nav-link" href="runtime.html">运行时与生命周期</a><a class="nav-link" href="actors.html">玩家、NPC 与物品</a><a class="nav-link" href="combat.html">战斗与角色姿态</a><a class="nav-link" href="dialogue.html">原生多轮对话</a><a class="nav-link" href="plugins.html">插件导入与动作</a><a class="nav-link" href="storage-timers.html">存储与计时器</a><a class="nav-link" href="tasks.html">任务与原生日志</a><div class="nav-section">工具</div><a class="nav-link active" href="explorer.html">ESP 资源浏览器</a><div class="nav-section">维护</div><a class="nav-link" href="troubleshooting.html">日志与常见问题</a><a class="nav-link" href="changelog.html">更新日志</a><a class="nav-link" href="contributing.html">文档维护与发布</a></nav><div class="sidebar-footer">开发预览 · 8641830<br>实现与验证状态分别记录</div></aside><div class="content-shell"><header><span>工具 / ESP 资源浏览器</span><a href="tools/esp-explorer/index.html">ESP Explorer ↗</a></header><div class="reading"><article><h1 id="esp-资源浏览器">ESP 资源浏览器</h1>
+<p><a href="tools/esp-explorer/index.html">打开在线工具</a></p>
+<p>在线版仍在浏览器本机读取你选择的文件，不上传插件。也可以从源码仓库的 tools/esp-explorer 目录离线打开 index.html，或双击打开工具.cmd。</p>
+<h2 id="浏览记录">浏览记录</h2>
+<p>选择一个 ESP / ESM / ESL，或选择单个模组文件夹。工具遍历所有记录与嵌套分组，并按道具、动作、任务、NPC 分类。</p>
+<p>可以搜索名称、Editor ID、内部 ID、文件 ID、动作事件与来源。点击记录查看字段、任务阶段、目标、附加脚本名称；复制内部 ID 或生成的 SkyrimJS 代码。</p>
+<p>当前筛选结果可导出 JSON 和带 BOM 的 UTF-8 CSV。CSV 对潜在公式前缀进行转义。未知记录保留通用字段与子记录签名，不等同于完整 xEdit 字段解释器。</p>
+<h2 id="id-与覆盖关系">ID 与覆盖关系</h2>
+<p>文件 ID 不是运行时 ID。工具根据 Master 列表判断原始归属；覆盖记录生成对原始插件的 import。它不合并整个游戏的加载顺序，也不猜测运行时 FE 编号。</p>
+<h2 id="动作来源">动作来源</h2>
+<div class="table-wrap"><table><thead><tr><th>来源</th><th>当前读取内容</th></tr></thead><tbody><tr><td>IDLE</td><td>ENAM 事件、DNAM 文件、相关记录</td></tr><tr><td>AACT / IDLM</td><td>显示通用记录，不把 Editor ID 当作事件</td></tr><tr><td>FNIS 文本</td><td>常见 b / s 声明，复杂配对与序列不展开</td></tr><tr><td>JSON</td><td>字段名含 anim / idle / event 的字符串候选</td></tr><tr><td>Papyrus 源码</td><td>未注释的直接 SendAnimationEvent 字面量，不推导变量</td></tr></tbody></table></div>
+<p>候选带来源和位置，未经游戏验证。没有解析二进制 HKX、BSA/BA2、OAR/DAR 条件或动画框架运行时注册表。</p>
+<h2 id="本地化文本">本地化文本</h2>
+<p>为本地化插件补充同名同语言的 strings、dlstrings、ilstrings。缺少文本时显示字符串 ID，不把四字节编号当文本读取。界面可切换语言；旧中文插件乱码时选择 GBK。</p>
+<h2 id="命令行">命令行</h2>
+<div class="code-block"><div class="code-label">powershell<button class="copy-code">复制</button></div><pre><code>node tools/esp-explorer/cli.cjs Example.esp --out build/Example.json --csv build/Example.csv
+node tools/esp-explorer/cli.cjs Example.esp --category quests --out build/quests.json
+node tools/esp-explorer/cli.cjs Example.esp --strings Example_english.strings --animations FNIS_Example_List.txt --out build/Example.json</code></pre></div>
+<p>strings 和 animations 选项可重复。还支持 type、search、encoding。退出码 0 为完成，2 为部分记录不完整，1 为读取或结构错误。</p>
+<p>界面单插件上限 768 MiB，单记录解压上限 64 MiB。文本配置每次最多 256 份、合计 64 MiB、每份最多 8 MiB；字符串表每份最多 64 MiB。</p>
+<h2 id="当前解析证据">当前解析证据</h2>
+<p>本地 MilkModNEW 样本读取了 619 条记录、55 个分组，无字段解析失败，其中 220 条道具、9 条 Idle、16 条任务。图形界面尚未启动实测，浏览器解压路径仍待操作验证。</p><div class="page-navigation"><a href="tasks.html">← 任务与原生日志</a><a href="troubleshooting.html">日志与常见问题 →</a></div><footer>SkyrimJS 中文文档 · 请以对应版本的代码和验证记录为准。</footer></article><aside class="toc"><div>本页内容</div><a href="#浏览记录">浏览记录</a><a href="#id-与覆盖关系">ID 与覆盖关系</a><a href="#动作来源">动作来源</a><a href="#本地化文本">本地化文本</a><a href="#命令行">命令行</a><a href="#当前解析证据">当前解析证据</a></aside></div></div></body></html>

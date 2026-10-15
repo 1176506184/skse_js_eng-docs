@@ -1,0 +1,35 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="SkyrimJS 中文开发文档：V8、SKSE、角色、对话、任务与插件资源。"><title>插件导入与动作 · SkyrimJS</title><link rel="stylesheet" href="assets/site.css"><script src="assets/search-index.js" defer></script><script src="assets/site.js" defer></script></head><body><aside class="sidebar"><a class="brand" href="index.html"><span>S</span><div>SkyrimJS<small>开发文档 · SE 1.5.97</small></div></a><div class="search"><input id="search" type="search" aria-label="搜索文档" placeholder="搜索 API / 示例…"><div id="search-results" hidden></div></div><nav><div class="nav-section">开始</div><a class="nav-link" href="index.html">项目介绍</a><a class="nav-link" href="getting-started.html">安装与第一个脚本</a><a class="nav-link" href="status.html">功能与验证状态</a><div class="nav-section">API</div><a class="nav-link" href="runtime.html">运行时与生命周期</a><a class="nav-link" href="actors.html">玩家、NPC 与物品</a><a class="nav-link" href="combat.html">战斗与角色姿态</a><a class="nav-link" href="dialogue.html">原生多轮对话</a><a class="nav-link active" href="plugins.html">插件导入与动作</a><a class="nav-link" href="storage-timers.html">存储与计时器</a><a class="nav-link" href="tasks.html">任务与原生日志</a><div class="nav-section">工具</div><a class="nav-link" href="explorer.html">ESP 资源浏览器</a><div class="nav-section">维护</div><a class="nav-link" href="troubleshooting.html">日志与常见问题</a><a class="nav-link" href="changelog.html">更新日志</a><a class="nav-link" href="contributing.html">文档维护与发布</a></nav><div class="sidebar-footer">开发预览 · 8641830<br>实现与验证状态分别记录</div></aside><div class="content-shell"><header><span>API / 插件导入与动作</span><a href="tools/esp-explorer/index.html">ESP Explorer ↗</a></header><div class="reading"><article><h1 id="插件导入与动作">插件导入与动作</h1>
+<h2 id="import-插件">import 插件</h2>
+<div class="code-block"><div class="code-label">js<button class="copy-code">复制</button></div><pre><code>import milk from &quot;@skse/MilkModNEW.esp&quot;;
+
+skse.onMounted(() =&gt; {
+    if (!milk.loaded) {
+        skse.console.error(milk.name, &quot;未加载&quot;);
+        return;
+    }
+    const item = milk.getForm(&quot;0x016369&quot;);
+    if (item) skse.player[0].addItem(item, 1);
+});</code></pre></div>
+<p>模块默认导出一个只读插件对象。支持 ESP、ESM、ESL 以及带 ESL 标记的 ESP；重复导入相同文件名共享对象，ASCII 文件名忽略大小写。</p>
+<div class="table-wrap"><table><thead><tr><th>成员</th><th>含义</th></tr></thead><tbody><tr><td>name</td><td>插件文件名</td></tr><tr><td>loaded</td><td>当前游戏加载表中是否启用该插件</td></tr><tr><td>getForm(localId)</td><td>查询记录，成功返回 Form 包装</td></tr><tr><td>getStatus(eventName)</td><td>生成动画事件描述</td></tr></tbody></table></div>
+<p>缺少插件仍可完成 import，loaded 为 false。import 不安装、不启用 ESP，也不执行其完整脚本流程。相对 JS、命名导出、动态导入、导入属性暂不支持。</p>
+<h2 id="getform-的-id">getForm 的 ID</h2>
+<p>参数是非零整数或 <code>0x</code> 字符串，必须省略运行时加载编号。普通插件用低 24 位内部 ID，1.5.97 轻量插件用低 12 位。接口按当前游戏加载表组装运行时 ID；超范围直接拒绝，不截断成别的 ID。</p>
+<p>不存在、已删除、插件未启用或参数错误时，输出错误并返回 undefined。</p>
+<p>成功包装有只读字段：</p>
+<div class="table-wrap"><table><thead><tr><th>字段</th><th>类型与含义</th></tr></thead><tbody><tr><td>plugin</td><td>文件名字符串</td></tr><tr><td>localFormId</td><td>内部 ID 数值</td></tr><tr><td>formId</td><td>实际运行时 ID 数值</td></tr><tr><td>type</td><td>原生 FormType 数值</td></tr></tbody></table></div>
+<p>查询得到该 ID 当前的最终覆盖记录。包装不缓存游戏指针，每次物品操作重新解析。JSON 复制、Storage 恢复的普通对象不能当作 Form 包装使用。</p>
+<p>本地 MilkModNEW 样本里的 <code>MME_Milk_0Generic_02</code> / <code>Milk, Regular</code> 文件 ID 为 <code>0x03016369</code>，内部 ID 为 <code>0x016369</code>。文件中的 03 属于 Master 顺序，不应当硬编码为游戏当前加载编号。不同模组版本请通过工具确认记录仍存在。</p>
+<h2 id="getstatus-eventname">getStatus(eventName)</h2>
+<div class="code-block"><div class="code-label">js<button class="copy-code">复制</button></div><pre><code>const action = milk.getStatus(&quot;MME_ZaZMOMFreeFurn_01&quot;);
+if (action &amp;&amp; player.setStatus(action)) {
+    setTimeout(() =&gt; player.setStatus(skse.statusEnum.idle), 5000);
+}</code></pre></div>
+<p>事件示例来自本地 ESP 的 Idle ENAM 字段，需要相应行为资源与场景条件；不保证当前角色可播放。</p>
+<p>参数必须是 1–256 个 ASCII 字母、数字或 <code>_ . - :</code>。空字符串、通配符与 HKX 路径不支持；错误或插件未加载时记录错误并返回 undefined。</p>
+<p>返回冻结描述：<code>{ plugin, event, type: &quot;animationEvent&quot; }</code>，通过私有包装标记识别，普通 JS 对象不可替代。</p>
+<p>此方法只生成描述，不扫描或核验动作目录。动画事件属于角色行为图；插件名在这里作为可用性条件和来源标签，不表示事件只属于这个 ESP。</p>
+<h2 id="setstatus-action-的结果">setStatus(action) 的结果</h2>
+<p>角色必须存活、已加载、3D 与 AI 数据可用。成功提交返回角色；动画图拒绝则写日志并返回 undefined。</p>
+<p><code>animation event submitted</code> 不证明可见动作已存在、开始或结束。骨骼、行为生成结果、家具状态、其他 AI 和动画事件都可能影响结果。</p>
+<p>本接口只发动画事件，不启动模组任务脚本、修改任务变量、锁定输入或自动清理家具状态。完整动画框架和通用 Papyrus 调用仍未实现。动作描述可跨存档重新使用，但运行时仍会核对插件是否启用；动画跟踪与计时器不会自动恢复。</p><div class="page-navigation"><a href="dialogue.html">← 原生多轮对话</a><a href="storage-timers.html">存储与计时器 →</a></div><footer>SkyrimJS 中文文档 · 请以对应版本的代码和验证记录为准。</footer></article><aside class="toc"><div>本页内容</div><a href="#import-插件">import 插件</a><a href="#getform-的-id">getForm 的 ID</a><a href="#getstatus-eventname">getStatus(eventName)</a><a href="#setstatus-action-的结果">setStatus(action) 的结果</a></aside></div></div></body></html>

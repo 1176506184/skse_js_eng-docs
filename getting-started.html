@@ -1,0 +1,40 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="SkyrimJS 中文开发文档：V8、SKSE、角色、对话、任务与插件资源。"><title>安装与第一个脚本 · SkyrimJS</title><link rel="stylesheet" href="assets/site.css"><script src="assets/search-index.js" defer></script><script src="assets/site.js" defer></script></head><body><aside class="sidebar"><a class="brand" href="index.html"><span>S</span><div>SkyrimJS<small>开发文档 · SE 1.5.97</small></div></a><div class="search"><input id="search" type="search" aria-label="搜索文档" placeholder="搜索 API / 示例…"><div id="search-results" hidden></div></div><nav><div class="nav-section">开始</div><a class="nav-link" href="index.html">项目介绍</a><a class="nav-link active" href="getting-started.html">安装与第一个脚本</a><a class="nav-link" href="status.html">功能与验证状态</a><div class="nav-section">API</div><a class="nav-link" href="runtime.html">运行时与生命周期</a><a class="nav-link" href="actors.html">玩家、NPC 与物品</a><a class="nav-link" href="combat.html">战斗与角色姿态</a><a class="nav-link" href="dialogue.html">原生多轮对话</a><a class="nav-link" href="plugins.html">插件导入与动作</a><a class="nav-link" href="storage-timers.html">存储与计时器</a><a class="nav-link" href="tasks.html">任务与原生日志</a><div class="nav-section">工具</div><a class="nav-link" href="explorer.html">ESP 资源浏览器</a><div class="nav-section">维护</div><a class="nav-link" href="troubleshooting.html">日志与常见问题</a><a class="nav-link" href="changelog.html">更新日志</a><a class="nav-link" href="contributing.html">文档维护与发布</a></nav><div class="sidebar-footer">开发预览 · 8641830<br>实现与验证状态分别记录</div></aside><div class="content-shell"><header><span>开始 / 安装与第一个脚本</span><a href="tools/esp-explorer/index.html">ESP Explorer ↗</a></header><div class="reading"><article><h1 id="安装与第一个脚本">安装与第一个脚本</h1>
+<h2 id="环境">环境</h2>
+<div class="table-wrap"><table><thead><tr><th>项目</th><th>当前目标</th></tr></thead><tbody><tr><td>游戏</td><td>Skyrim Special Edition 1.5.97，64 位 Windows</td></tr><tr><td>SKSE</td><td>2.0.20</td></tr><tr><td>引擎</td><td>项目固定配置的 V8 13.8.66</td></tr><tr><td>构建</td><td>Visual Studio 2022 C++ 工具、Windows SDK、CMake</td></tr><tr><td>文档与离线工具</td><td>新版 Chrome / Edge；构建文档与 CLI 需要 Node.js</td></tr></tbody></table></div>
+<h2 id="安装文件">安装文件</h2>
+<div class="code-block"><div class="code-label">text<button class="copy-code">复制</button></div><pre><code>SkyrimSE/
+  skse64_loader.exe
+  Data/
+    SkyrimJS_Tasks.esp
+    SKSE/
+      Plugins/
+        SkyrimJS.dll
+        SkyrimJS/
+          main.js
+          SkyrimJS.log</code></pre></div>
+<p><code>SkyrimJS_Tasks.esp</code> 只在使用原生任务日志时需要启用。缺失载体时 JS 任务进度仍可保存，<code>task.journal</code> 返回 <code>&quot;unavailable&quot;</code>，日志会提示缺失。</p>
+<p>使用模组管理器时，把上述 Data 内容作为模组安装，并启用任务载体及所导入插件的依赖。游戏外能找到文件，不代表当前管理器配置已启用它。</p>
+<h2 id="第一个入口">第一个入口</h2>
+<p>把下面内容以 UTF-8 保存为 <code>Data/SKSE/Plugins/SkyrimJS/main.js</code>：</p>
+<div class="code-block"><div class="code-label">js<button class="copy-code">复制</button></div><pre><code>skse.console.log(&quot;脚本启动，版本：&quot;, skse.runtimeVersion.toString(16));
+
+skse.onMounted(() =&gt; {
+    skse.console.log(&quot;进入存档，玩家血量：&quot;, skse.player[0].health);
+});</code></pre></div>
+<p>通过 SKSE 启动游戏。主菜单阶段执行入口；继续存档或新建游戏之后才触发 <code>onMounted</code>，游戏对象操作放进这个回调。</p>
+<h2 id="先看日志">先看日志</h2>
+<div class="code-block"><div class="code-label">text<button class="copy-code">复制</button></div><pre><code>SkyrimJS loaded; waiting for DataLoaded
+脚本启动，版本： 1050610
+main.js executed
+onMounted dispatch begin
+进入存档，玩家血量： ...
+onMounted dispatched</code></pre></div>
+<p>日志默认写到插件脚本目录。MO2 可能重定向到该实例的 <code>overwrite/SKSE/Plugins/SkyrimJS/SkyrimJS.log</code>。</p>
+<h2 id="从源码构建">从源码构建</h2>
+<p>V8 头文件、生成配置与静态库必须来自同一份固定版本。仓库的 <code>scripts/prepare-v8.ps1</code> 和 <code>scripts/build-plugin.ps1</code> 用于准备依赖与构建 DLL；详细本机准备过程保留在源码仓库的 Windows setup 文档。</p>
+<div class="code-block"><div class="code-label">powershell<button class="copy-code">复制</button></div><pre><code>cmake --build build --config Release --target skse_js_eng
+node scripts/build-task-carrier.cjs
+node scripts/build-docs.cjs</code></pre></div>
+<p>DLL 位于 <code>build/Release/SkyrimJS.dll</code>，任务 ESP 位于 <code>build/package/Data/SkyrimJS_Tasks.esp</code>。覆盖 DLL 和 ESP 前先退出游戏。</p>
+<h2 id="重启与读档">重启与读档</h2>
+<p>当前不支持热更新入口。修改 <code>main.js</code> 后重启游戏进程。进入另一个存档会使原有 NPC、任务句柄和计时器失效；在新的 <code>onMounted</code> 中重新取得它们。</p><div class="page-navigation"><a href="index.html">← 项目介绍</a><a href="status.html">功能与验证状态 →</a></div><footer>SkyrimJS 中文文档 · 请以对应版本的代码和验证记录为准。</footer></article><aside class="toc"><div>本页内容</div><a href="#环境">环境</a><a href="#安装文件">安装文件</a><a href="#第一个入口">第一个入口</a><a href="#先看日志">先看日志</a><a href="#从源码构建">从源码构建</a><a href="#重启与读档">重启与读档</a></aside></div></div></body></html>

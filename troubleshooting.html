@@ -1,0 +1,22 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="SkyrimJS 中文开发文档：V8、SKSE、角色、对话、任务与插件资源。"><title>日志与常见问题 · SkyrimJS</title><link rel="stylesheet" href="assets/site.css"><script src="assets/search-index.js" defer></script><script src="assets/site.js" defer></script></head><body><aside class="sidebar"><a class="brand" href="index.html"><span>S</span><div>SkyrimJS<small>开发文档 · SE 1.5.97</small></div></a><div class="search"><input id="search" type="search" aria-label="搜索文档" placeholder="搜索 API / 示例…"><div id="search-results" hidden></div></div><nav><div class="nav-section">开始</div><a class="nav-link" href="index.html">项目介绍</a><a class="nav-link" href="getting-started.html">安装与第一个脚本</a><a class="nav-link" href="status.html">功能与验证状态</a><div class="nav-section">API</div><a class="nav-link" href="runtime.html">运行时与生命周期</a><a class="nav-link" href="actors.html">玩家、NPC 与物品</a><a class="nav-link" href="combat.html">战斗与角色姿态</a><a class="nav-link" href="dialogue.html">原生多轮对话</a><a class="nav-link" href="plugins.html">插件导入与动作</a><a class="nav-link" href="storage-timers.html">存储与计时器</a><a class="nav-link" href="tasks.html">任务与原生日志</a><div class="nav-section">工具</div><a class="nav-link" href="explorer.html">ESP 资源浏览器</a><div class="nav-section">维护</div><a class="nav-link active" href="troubleshooting.html">日志与常见问题</a><a class="nav-link" href="changelog.html">更新日志</a><a class="nav-link" href="contributing.html">文档维护与发布</a></nav><div class="sidebar-footer">开发预览 · 8641830<br>实现与验证状态分别记录</div></aside><div class="content-shell"><header><span>维护 / 日志与常见问题</span><a href="tools/esp-explorer/index.html">ESP Explorer ↗</a></header><div class="reading"><article><h1 id="日志与常见问题">日志与常见问题</h1>
+<h2 id="完全没有日志">完全没有日志</h2>
+<p>先确认通过 SKSE 启动，DLL 位于有效的 Data/SKSE/Plugins，而不是只复制到开发仓库。检查游戏实际版本是否 1.5.97，SKSE 是否 2.0.20。</p>
+<p>使用 MO2 时查看当前实例的 overwrite 目录，确认启用的配置实际包含 DLL 和脚本。</p>
+<h2 id="主菜单有日志-进入游戏没生成对象">主菜单有日志，进入游戏没生成对象</h2>
+<p>入口执行与 onMounted 是两个阶段。先找 <code>main.js executed</code>、<code>onMounted dispatch begin</code>、具体 API 错误。生成依赖有效 NPC 基础 Form；记录引用 ID 和 NPC 基础 ID 不同。</p>
+<h2 id="插件-loaded-为-false">插件 loaded 为 false</h2>
+<p>检查插件的完整文件名、依赖和当前管理器配置。游戏外文件存在不等于当前配置已启用。import 本身不会启用插件。</p>
+<h2 id="getform-查不到">getForm 查不到</h2>
+<p>使用内部 ID，省略运行时高位编号。覆盖记录需按原始插件查询。轻量插件编号不能超出 1.5.97 的 12 位范围；用 ESP Explorer 确认类型、删除标记与来源。</p>
+<h2 id="有动画提交日志-没有可见动作">有动画提交日志，没有可见动作</h2>
+<p>检查事件名称大小写、行为是否生成、骨骼、角色性别与场景/家具条件。提交成功只表示引擎接受请求。HKX 路径和 Idle 的 Editor ID 不等于动画事件。</p>
+<h2 id="对话没有出现">对话没有出现</h2>
+<p>角色须已加载、存活且不在战斗中，target 必须为玩家，同一时间没有另一段对话。检查 setTopic 日志，原生菜单超时和 SWF 不兼容会写错误。</p>
+<h2 id="任务进度存在但日志不可见">任务进度存在但日志不可见</h2>
+<p>检查 <code>task.journal</code> 和 <code>SkyrimJS_Tasks.esp</code> 是否在当前配置启用。原生启动 pending 时稍后 refreshJournal。说明以目标行呈现；必要时重开任务日志。当前不生成地图标记。</p>
+<h2 id="为什么读档后对象方法失效">为什么读档后对象方法失效</h2>
+<p>角色、任务句柄绑定具体存档。读档后在 onMounted 中重新 Storage.get、Tasks.get 或 addTask。不要使用旧闭包持有的任务句柄操作新存档。</p>
+<h2 id="为什么奖励没有再次执行">为什么奖励没有再次执行</h2>
+<p>已结束任务不会因为读档或重复 addTask 重放回调。任务进度先保存，奖励回调抛错也不自动重试；根据日志处理自己的奖励逻辑。</p>
+<h2 id="报告问题时提供什么">报告问题时提供什么</h2>
+<ul><li>游戏、SKSE 与 DLL 对应的版本/提交。</li><li>最小 main.js 示例与相关日志段落。</li><li>发生在主菜单、进入存档、执行动作、对话退出还是保存/读档。</li><li>相关 ESP、动画框架与界面模组的版本；不要把大型游戏资源直接提交到公开文档仓库。</li></ul><div class="page-navigation"><a href="explorer.html">← ESP 资源浏览器</a><a href="changelog.html">更新日志 →</a></div><footer>SkyrimJS 中文文档 · 请以对应版本的代码和验证记录为准。</footer></article><aside class="toc"><div>本页内容</div><a href="#完全没有日志">完全没有日志</a><a href="#主菜单有日志-进入游戏没生成对象">主菜单有日志，进入游戏没生成对象</a><a href="#插件-loaded-为-false">插件 loaded 为 false</a><a href="#getform-查不到">getForm 查不到</a><a href="#有动画提交日志-没有可见动作">有动画提交日志，没有可见动作</a><a href="#对话没有出现">对话没有出现</a><a href="#任务进度存在但日志不可见">任务进度存在但日志不可见</a><a href="#为什么读档后对象方法失效">为什么读档后对象方法失效</a><a href="#为什么奖励没有再次执行">为什么奖励没有再次执行</a><a href="#报告问题时提供什么">报告问题时提供什么</a></aside></div></div></body></html>

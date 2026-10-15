@@ -1,0 +1,30 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="SkyrimJS 中文开发文档：V8、SKSE、角色、对话、任务与插件资源。"><title>玩家、NPC 与物品 · SkyrimJS</title><link rel="stylesheet" href="assets/site.css"><script src="assets/search-index.js" defer></script><script src="assets/site.js" defer></script></head><body><aside class="sidebar"><a class="brand" href="index.html"><span>S</span><div>SkyrimJS<small>开发文档 · SE 1.5.97</small></div></a><div class="search"><input id="search" type="search" aria-label="搜索文档" placeholder="搜索 API / 示例…"><div id="search-results" hidden></div></div><nav><div class="nav-section">开始</div><a class="nav-link" href="index.html">项目介绍</a><a class="nav-link" href="getting-started.html">安装与第一个脚本</a><a class="nav-link" href="status.html">功能与验证状态</a><div class="nav-section">API</div><a class="nav-link" href="runtime.html">运行时与生命周期</a><a class="nav-link active" href="actors.html">玩家、NPC 与物品</a><a class="nav-link" href="combat.html">战斗与角色姿态</a><a class="nav-link" href="dialogue.html">原生多轮对话</a><a class="nav-link" href="plugins.html">插件导入与动作</a><a class="nav-link" href="storage-timers.html">存储与计时器</a><a class="nav-link" href="tasks.html">任务与原生日志</a><div class="nav-section">工具</div><a class="nav-link" href="explorer.html">ESP 资源浏览器</a><div class="nav-section">维护</div><a class="nav-link" href="troubleshooting.html">日志与常见问题</a><a class="nav-link" href="changelog.html">更新日志</a><a class="nav-link" href="contributing.html">文档维护与发布</a></nav><div class="sidebar-footer">开发预览 · 8641830<br>实现与验证状态分别记录</div></aside><div class="content-shell"><header><span>API / 玩家、NPC 与物品</span><a href="tools/esp-explorer/index.html">ESP Explorer ↗</a></header><div class="reading"><article><h1 id="玩家-npc-与物品">玩家、NPC 与物品</h1>
+<h2 id="skse-player-0">skse.player[0]</h2>
+<p>当前玩家的角色包装。接口操作在 <code>onMounted</code> 内执行。当前没有多人或玩家列表枚举；数组只提供这个入口。</p>
+<h2 id="skse-new-formid">skse.new({ formId })</h2>
+<p>从 NPC 基础记录生成一个新角色，返回角色包装。<code>formId</code> 接受非零 uint32 或 <code>0x</code> 开头的十六进制字符串。</p>
+<div class="code-block"><div class="code-label">js<button class="copy-code">复制</button></div><pre><code>skse.onMounted(() =&gt; {
+    const hero = skse.new({ formId: &quot;0x001034E4&quot; });
+    if (!hero) return;
+    hero.setPosition(skse.player[0].position);
+    skse.Storage.set(&quot;demo.hero&quot;, hero);
+});</code></pre></div>
+<p>示例是 Skyrim.esm 的 WEFarmerMale。调用前先检查记录存在并且类型为 NPC。不存在、类型不符、VM 不可用或生成失败时，记录错误并返回 <code>undefined</code>。</p>
+<p>对其他模组的 NPC，先按插件内部 ID 查询，再使用返回的运行时 ID：</p>
+<div class="code-block"><div class="code-label">js<button class="copy-code">复制</button></div><pre><code>const base = mod.getForm(&quot;0x001234&quot;); // 替换为该模组的真实 NPC 基础 ID
+if (base) skse.new({ formId: base.formId });</code></pre></div>
+<h2 id="position-setposition-position">position / setPosition(position)</h2>
+<div class="code-block"><div class="code-label">js<button class="copy-code">复制</button></div><pre><code>const position = skse.player[0].position; // { x, y, z }
+hero.setPosition(position);             // 成功时返回 hero</code></pre></div>
+<p>坐标必须是有限数值，绝对值不超过 100000000。接口保留角色旋转，使用该角色当前场景与世界空间；此接口不携带 Cell，因此不能直接作为跨场景传送 API。</p>
+<h2 id="health-attack">health / attack</h2>
+<div class="table-wrap"><table><thead><tr><th>属性</th><th>含义</th></tr></thead><tbody><tr><td>actor.health</td><td>当前 Health 值</td></tr><tr><td>actor.attack</td><td>已装备武器中最大的基础物理伤害，或原生徒手伤害参考值</td></tr></tbody></table></div>
+<p><code>attack</code> 不计入锻造、附魔、Perk、难度、护甲、重击等修正，不能用于保证下一击不会致死。</p>
+<h2 id="actor-additem-form-count-1">actor.addItem(form, count = 1)</h2>
+<p><code>form</code> 必须来自插件的 <code>getForm</code>，数量是正的 int32。成功提交原生请求后返回接收角色；无效引用或不支持的物品类型记录错误并返回 <code>undefined</code>。</p>
+<div class="code-block"><div class="code-label">js<button class="copy-code">复制</button></div><pre><code>const item = mod.getForm(&quot;0x001234&quot;);
+if (item) skse.player[0].addItem(item, 1);</code></pre></div>
+<p>支持武器、护甲、弹药、书、卷轴、食材、药水、杂物、工具、钥匙、灯和灵魂石的基础记录；原生游戏仍会应用物品限制。不接受已放置的引用、FormList、Leveled List、任务或 NPC。</p>
+<p>此 API 不复制实例附加数据，如某件已强化装备的实例状态。日志 <code>addItem: requested</code> 只表示已提交请求，未核验背包最终数量。</p>
+<h2 id="其他角色方法">其他角色方法</h2>
+<ul><li><a href="combat.html">setStatus 与 attackTo</a></li><li><a href="dialogue.html">setTopic</a></li><li><a href="tasks.html">玩家 addTask</a></li></ul><div class="page-navigation"><a href="runtime.html">← 运行时与生命周期</a><a href="combat.html">战斗与角色姿态 →</a></div><footer>SkyrimJS 中文文档 · 请以对应版本的代码和验证记录为准。</footer></article><aside class="toc"><div>本页内容</div><a href="#skse-player-0">skse.player[0]</a><a href="#skse-new-formid">skse.new({ formId })</a><a href="#position-setposition-position">position / setPosition(position)</a><a href="#health-attack">health / attack</a><a href="#actor-additem-form-count-1">actor.addItem(form, count = 1)</a><a href="#其他角色方法">其他角色方法</a></aside></div></div></body></html>

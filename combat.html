@@ -1,0 +1,33 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="SkyrimJS 中文开发文档：V8、SKSE、角色、对话、任务与插件资源。"><title>战斗与角色姿态 · SkyrimJS</title><link rel="stylesheet" href="assets/site.css"><script src="assets/search-index.js" defer></script><script src="assets/site.js" defer></script></head><body><aside class="sidebar"><a class="brand" href="index.html"><span>S</span><div>SkyrimJS<small>开发文档 · SE 1.5.97</small></div></a><div class="search"><input id="search" type="search" aria-label="搜索文档" placeholder="搜索 API / 示例…"><div id="search-results" hidden></div></div><nav><div class="nav-section">开始</div><a class="nav-link" href="index.html">项目介绍</a><a class="nav-link" href="getting-started.html">安装与第一个脚本</a><a class="nav-link" href="status.html">功能与验证状态</a><div class="nav-section">API</div><a class="nav-link" href="runtime.html">运行时与生命周期</a><a class="nav-link" href="actors.html">玩家、NPC 与物品</a><a class="nav-link active" href="combat.html">战斗与角色姿态</a><a class="nav-link" href="dialogue.html">原生多轮对话</a><a class="nav-link" href="plugins.html">插件导入与动作</a><a class="nav-link" href="storage-timers.html">存储与计时器</a><a class="nav-link" href="tasks.html">任务与原生日志</a><div class="nav-section">工具</div><a class="nav-link" href="explorer.html">ESP 资源浏览器</a><div class="nav-section">维护</div><a class="nav-link" href="troubleshooting.html">日志与常见问题</a><a class="nav-link" href="changelog.html">更新日志</a><a class="nav-link" href="contributing.html">文档维护与发布</a></nav><div class="sidebar-footer">开发预览 · 8641830<br>实现与验证状态分别记录</div></aside><div class="content-shell"><header><span>API / 战斗与角色姿态</span><a href="tools/esp-explorer/index.html">ESP Explorer ↗</a></header><div class="reading"><article><h1 id="战斗与角色姿态">战斗与角色姿态</h1>
+<h2 id="actor-setstatus-status">actor.setStatus(status)</h2>
+<div class="code-block"><div class="code-label">js<button class="copy-code">复制</button></div><pre><code>hero.setStatus(skse.statusEnum.combat);
+hero.setStatus(skse.statusEnum.idle);</code></pre></div>
+<p><code>combat</code> 停止受管理的攻击流程，并保持拔出武器的姿态；它不会自动选择敌人。<code>idle</code> 停止战斗并收起武器，让角色回到普通游戏 AI。成功返回角色。</p>
+<p>两种状态都会取消本框架管理的该角色攻击指令，触发其 <code>finally</code>。它们不会修改角色阵营或侵略性，所以游戏 AI 仍可能重新进入战斗。</p>
+<p>如果该角色曾提交过我们的自定义动作，还会尝试发送 <code>IdleForceDefaultState</code>。失败写日志并允许再次调用重试。跟踪记录无法判断之后是否有其他模组接管了动画。</p>
+<p>动画描述参数见 <a href="plugins.html">插件导入与动作</a>。传入动画描述只请求动作，本身不会取消 <code>attackTo</code>。</p>
+<h2 id="actor-attackto-target-options">actor.attackTo(target, options)</h2>
+<div class="code-block"><div class="code-label">js<button class="copy-code">复制</button></div><pre><code>hero.attackTo(player, {
+    dead: true,
+    number: 0,
+    time: 5,
+    event: (e) =&gt; {
+        if (player.health &lt;= hero.attack + 10) {
+            hero.setStatus(skse.statusEnum.combat);
+        }
+    },
+    finally: (e) =&gt; {
+        hero.setStatus(skse.statusEnum.idle);
+        skse.console.log(&quot;攻击结束：&quot;, e.reason);
+    },
+});</code></pre></div>
+<p>调用者和目标都需要是当前可用且存活的角色。目标不能是自身。成功返回攻击者。游戏 AI 控制目标选择、动作与命中。</p>
+<div class="table-wrap"><table><thead><tr><th>参数</th><th>含义</th></tr></thead><tbody><tr><td>dead</td><td>为 true 时监控死亡，并在攻击者脱战时尝试重新进入战斗</td></tr><tr><td>number</td><td>攻击动作次数上限；0 或省略关闭限制</td></tr><tr><td>time</td><td>最长墙钟时间，秒；0 或省略关闭；最大 3600</td></tr><tr><td>event</td><td>开始前和执行期间约每 0.5 秒调用</td></tr><tr><td>finally</td><td>受管理流程结束时调用一次</td></tr></tbody></table></div>
+<p><code>number</code> 计数的是 SKSE 的挥击、弓释放、法术发射等攻击动作，包含未命中的尝试。动作事件只给出攻击者，期间攻击其他目标也可能计数。</p>
+<h2 id="回调对象">回调对象</h2>
+<p><code>event(e)</code> 包含 <code>attacker</code>、<code>target</code>、<code>count</code>、<code>elapsed</code>，其中 elapsed 单位为秒。回调可以调用 <code>setStatus(combat)</code> 取消攻击并保持战斗姿态。</p>
+<p><code>finally(e)</code> 额外包含 reason：</p>
+<div class="table-wrap"><table><thead><tr><th>reason</th><th>原因</th></tr></thead><tbody><tr><td>combat / idle</td><td>代码调用相应姿态取消</td></tr><tr><td>time / number / dead</td><td>达到时间、动作次数或死亡条件</td></tr><tr><td>replaced</td><td>被同角色的新指令替换</td></tr><tr><td>unavailable / error</td><td>对象不可用或执行失败</td></tr></tbody></table></div>
+<p>多个结束条件中先达到者生效。引擎结束攻击指令后保留战斗姿态；想收起武器请在 finally 中显式调用 idle。</p>
+<p>计时使用墙钟，包含暂停菜单。换存档会丢弃旧攻击指令及回调，不在旧世界调用 finally。指令不自动保存；读档后由脚本决定是否重新下达。</p>
+<blockquote>低血量轮询加基础伤害参考值无法保证非致命攻击，也无法阻止已经发出的攻击造成伤害。</blockquote><div class="page-navigation"><a href="actors.html">← 玩家、NPC 与物品</a><a href="dialogue.html">原生多轮对话 →</a></div><footer>SkyrimJS 中文文档 · 请以对应版本的代码和验证记录为准。</footer></article><aside class="toc"><div>本页内容</div><a href="#actor-setstatus-status">actor.setStatus(status)</a><a href="#actor-attackto-target-options">actor.attackTo(target, options)</a><a href="#回调对象">回调对象</a></aside></div></div></body></html>

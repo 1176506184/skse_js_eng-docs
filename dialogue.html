@@ -1,0 +1,41 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="SkyrimJS 中文开发文档：V8、SKSE、角色、对话、任务与插件资源。"><title>原生多轮对话 · SkyrimJS</title><link rel="stylesheet" href="assets/site.css"><script src="assets/search-index.js" defer></script><script src="assets/site.js" defer></script></head><body><aside class="sidebar"><a class="brand" href="index.html"><span>S</span><div>SkyrimJS<small>开发文档 · SE 1.5.97</small></div></a><div class="search"><input id="search" type="search" aria-label="搜索文档" placeholder="搜索 API / 示例…"><div id="search-results" hidden></div></div><nav><div class="nav-section">开始</div><a class="nav-link" href="index.html">项目介绍</a><a class="nav-link" href="getting-started.html">安装与第一个脚本</a><a class="nav-link" href="status.html">功能与验证状态</a><div class="nav-section">API</div><a class="nav-link" href="runtime.html">运行时与生命周期</a><a class="nav-link" href="actors.html">玩家、NPC 与物品</a><a class="nav-link" href="combat.html">战斗与角色姿态</a><a class="nav-link active" href="dialogue.html">原生多轮对话</a><a class="nav-link" href="plugins.html">插件导入与动作</a><a class="nav-link" href="storage-timers.html">存储与计时器</a><a class="nav-link" href="tasks.html">任务与原生日志</a><div class="nav-section">工具</div><a class="nav-link" href="explorer.html">ESP 资源浏览器</a><div class="nav-section">维护</div><a class="nav-link" href="troubleshooting.html">日志与常见问题</a><a class="nav-link" href="changelog.html">更新日志</a><a class="nav-link" href="contributing.html">文档维护与发布</a></nav><div class="sidebar-footer">开发预览 · 8641830<br>实现与验证状态分别记录</div></aside><div class="content-shell"><header><span>API / 原生多轮对话</span><a href="tools/esp-explorer/index.html">ESP Explorer ↗</a></header><div class="reading"><article><h1 id="原生多轮对话">原生多轮对话</h1>
+<h2 id="actor-settopic-target-topics">actor.setTopic({ target, topics })</h2>
+<p>请求 NPC 原生 Dialogue Menu。目标必须是 <code>skse.player[0]</code>，说话者是已加载、存活且不在战斗中的 NPC。</p>
+<div class="code-block"><div class="code-label">js<button class="copy-code">复制</button></div><pre><code>hero.setTopic({
+    target: player,
+    topics: [
+        {
+            topicText: &quot;愿意帮我一个忙吗？&quot;,
+            options: [
+                { text: &quot;你说吧。&quot; },
+                { text: &quot;现在不行。&quot;, end: true },
+            ],
+        },
+        {
+            topicText: &quot;帮我带一件东西回来。&quot;,
+            options: [
+                {
+                    text: &quot;好，我答应。&quot;,
+                    onSelect: () =&gt; {
+                        player.addTask({
+                            id: &quot;demo.delivery&quot;,
+                            title: &quot;帮忙送货&quot;,
+                            description: &quot;按约定带回物品。&quot;,
+                        });
+                    },
+                },
+            ],
+        },
+    ],
+});</code></pre></div>
+<p>每个数组项是一轮。选择选项后默认进入下一项；最后一轮自动结束；<code>end: true</code> 提前结束。当前没有 next、节点 ID、循环跳转等分支路由。</p>
+<h2 id="字段">字段</h2>
+<div class="table-wrap"><table><thead><tr><th>字段</th><th>说明</th></tr></thead><tbody><tr><td>target</td><td>当前玩家包装</td></tr><tr><td>topics</td><td>1–128 个对话轮次</td></tr><tr><td>topicText</td><td>NPC 台词，非空，最多 4096 UTF-8 字节</td></tr><tr><td>options</td><td>每轮 1–16 个选项</td></tr><tr><td>text</td><td>选项文本，非空，最多 512 UTF-8 字节</td></tr><tr><td>end</td><td>可选布尔值，提前结束</td></tr><tr><td>onSelect</td><td>可选同步回调</td></tr></tbody></table></div>
+<p>文本不能包含 NUL。先解析和校验完整配置，再请求菜单，避免一半配置触发游戏副作用。</p>
+<h2 id="回调时机">回调时机</h2>
+<p><code>onSelect(e)</code> 的 e 包含 <code>speaker</code>、<code>target</code>、<code>round</code>、<code>index</code>、<code>text</code>。round 和 index 从 0 开始。</p>
+<p>中间轮次先执行回调，再推进；结束选项等原生菜单真正关闭后才执行，允许回调发起攻击或添加任务。玩家直接退出菜单不执行选项回调。异常写日志并结束当前对话。</p>
+<h2 id="限制与排查">限制与排查</h2>
+<p>同一时间只能有一个对话。当前显示字幕，不生成配音或嘴型。请求原生菜单五秒内没有得到兼容菜单时记录失败。</p>
+<p>实现依赖 SE 1.5.97 的原生菜单布局，修改对话 SWF 的模组可能不兼容。原生开场、镜头、输入与各类退出路径仍需游戏内验证。</p>
+<p><code>setStatus(idle)</code> 后需要让游戏 AI 状态稳定再开对话；角色重新进入战斗时可能无法开始。日志中的 <code>setTopic: native dialogue displayed</code>、<code>selected option</code> 和错误信息用于区分请求、显示和选项选择。</p><div class="page-navigation"><a href="combat.html">← 战斗与角色姿态</a><a href="plugins.html">插件导入与动作 →</a></div><footer>SkyrimJS 中文文档 · 请以对应版本的代码和验证记录为准。</footer></article><aside class="toc"><div>本页内容</div><a href="#actor-settopic-target-topics">actor.setTopic({ target, topics })</a><a href="#字段">字段</a><a href="#回调时机">回调时机</a><a href="#限制与排查">限制与排查</a></aside></div></div></body></html>
