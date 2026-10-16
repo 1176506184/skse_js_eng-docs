@@ -7,7 +7,7 @@
         const bytes = input => input instanceof Uint8Array ? input : new Uint8Array(input);
         const view = data => new DataView(data.buffer, data.byteOffset, data.byteLength);
         const signature = (data, p) => String.fromCharCode(...data.subarray(p, p + 4));
-        const category = type => itemTypes.has(type) ? 'items' : animationTypes.has(type) ? 'animations' : type === 'QUST' ? 'quests' : type === 'NPC_' ? 'actors' : 'other';
+        const category = type => itemTypes.has(type) ? 'items' : animationTypes.has(type) ? 'animations' : type === 'QUST' ? 'quests' : (type === 'NPC_' || type === 'ACHR') ? 'actors' : 'other';
         const validEvent = name => /^[A-Za-z0-9_.:-]{1,256}$/.test(name);
         function decode(data, encoding = 'auto') {
             const end = data.indexOf(0);
@@ -161,6 +161,7 @@
                         tags.add(tag); const v = view(value);
                         if (tag === 'EDID' && !row.editorId) row.editorId = decode(value, encoding);
                         if (tag === 'FULL' && !row.name) row.name = text(value);
+                        if (type === 'ACHR' && tag === 'NAME' && value.length === 4) details.baseFileFormId = hex(v.getUint32(0, true));
                         if (tag === 'VMAD') {
                             try { details.scripts = scriptNames(value, encoding); }
                             catch (error) { details.scriptWarning = error.message; warn(type + ' ' + row.fileFormId + ': ' + error.message); }
@@ -234,6 +235,14 @@
             const event = row.event || row.details?.animationEvent;
             const owner = row.originPlugin || (row.event ? plugin : null);
             if (!owner || row.deleted || row.parseError) return '// 原始插件未知、记录已删除或解析失败，暂不生成调用代码。';
+            if (row.signature === 'ACHR') return [
+                'skse.onMounted(() => {',
+                '    const hero = skse.getActor({ plugin: ' + JSON.stringify(owner) + ', referenceId: ' + JSON.stringify(row.localFormId) + ' });',
+                '    if (!hero) return;',
+                '    // 获取已有角色；需要传送时再调用，不会生成新角色。',
+                '    // hero.moveTo(skse.player[0]);',
+                '});'
+            ].join('\n');
             const lines = ['import mod from ' + JSON.stringify('@skse/' + owner) + ';', '', 'skse.onMounted(() => {', '    if (!mod.loaded) return;'];
             if (event && validEvent(event)) lines.push('    const action = mod.getStatus(' + JSON.stringify(event) + ');', '    if (action) skse.player[0].setStatus(action);');
             else {

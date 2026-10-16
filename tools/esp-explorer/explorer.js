@@ -64,6 +64,7 @@
         const dl = node('dl');
         const add = (label, value) => { if (value !== undefined && value !== null && value !== '') dl.append(node('dt', label), node('dd', String(value))); };
         add('记录类型', row.signature); add('Editor ID', row.editorId); add('内部 ID', row.localFormId);
+        add('NPC 基础记录（文件 ID）', row.details?.baseFileFormId);
         add('文件 ID', row.fileFormId); add('原始插件', row.originPlugin); add('当前插件', state.result.metadata.filename);
         add('覆盖记录', row.event ? undefined : row.override ? '是' : '否'); add('记录状态', row.deleted ? '已删除' : row.event ? '外部配置候选' : '有效记录');
         add('文件偏移', row.offset === undefined ? undefined : api.hex(row.offset)); add('记录大小', row.size === undefined ? undefined : row.size + ' 字节');
@@ -73,6 +74,7 @@
         if (row.parseError) detail.append(node('p', row.parseError, 'notice'));
         if (row.details?.scriptWarning) detail.append(node('p', row.details.scriptWarning, 'notice'));
         if (row.category === 'animations') detail.append(node('p', '事件名与 Editor ID 含义不同。此处只显示记录或配置值，不代表动作已安装或可播放。', 'notice'));
+        if (row.signature === 'ACHR') detail.append(node('p', 'ACHR 是已放置角色引用：使用 getActor 获取；NPC_ 是基础记录：使用 new 生成。获取引用不会自动启用、复活或移动角色。', 'notice'));
         if (row.signature === 'QUST') {
             detail.append(node('p', '任务 ID 与阶段来自文件定义，当前 SkyrimJS 尚未提供启动任务或设置阶段的接口。', 'notice'));
             if (row.details?.stages?.length) {
