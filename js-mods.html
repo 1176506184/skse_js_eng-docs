@@ -1,0 +1,83 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="SkyrimJS 中文开发文档：V8、SKSE、角色、对话、任务与插件资源。"><title>JS 模组安装与打包 · SkyrimJS</title><link rel="stylesheet" href="assets/site.css"><script src="assets/search-index.js" defer></script><script src="assets/site.js" defer></script></head><body><aside class="sidebar"><a class="brand" href="index.html"><span>S</span><div>SkyrimJS<small>开发文档 · SE 1.5.97</small></div></a><div class="search"><input id="search" type="search" aria-label="搜索文档" placeholder="搜索 API / 示例…"><div id="search-results" hidden></div></div><nav><div class="nav-section">开始</div><a class="nav-link" href="index.html">项目介绍</a><a class="nav-link" href="getting-started.html">框架安装教程</a><a class="nav-link" href="status.html">功能与验证状态</a><div class="nav-section">教程</div><a class="nav-link active" href="js-mods.html">JS 模组安装与打包</a><a class="nav-link" href="collection-quest.html">完整收集任务流程</a><div class="nav-section">API</div><a class="nav-link" href="runtime.html">运行时与生命周期</a><a class="nav-link" href="actors.html">玩家、NPC 与物品</a><a class="nav-link" href="events.html">角色事件监听</a><a class="nav-link" href="combat.html">战斗与角色姿态</a><a class="nav-link" href="dialogue.html">原生多轮对话</a><a class="nav-link" href="html-ui.html">透明 HTML 界面</a><a class="nav-link" href="plugins.html">插件导入与动作</a><a class="nav-link" href="storage-timers.html">存储与计时器</a><a class="nav-link" href="tasks.html">任务与原生日志</a><div class="nav-section">工具</div><a class="nav-link" href="explorer.html">ESP 资源浏览器</a><div class="nav-section">维护</div><a class="nav-link" href="troubleshooting.html">日志与常见问题</a><a class="nav-link" href="changelog.html">更新日志</a><a class="nav-link" href="contributing.html">文档维护与发布</a></nav><div class="sidebar-footer">开发预览 · 570ad51<br>实现与验证状态分别记录</div></aside><div class="content-shell"><header><span>教程 / JS 模组安装与打包</span><a href="tools/esp-explorer/index.html">ESP Explorer ↗</a></header><div class="reading"><article><h1 id="js-模组安装与打包">JS 模组安装与打包</h1>
+<p>目标版本：Skyrim SE 1.5.97 / SKSE 2.0.20。框架现在可以自动发现多个 JS 模组，不需要把它们合并到公共 main.js，也不需要为每次 JS 修改重新编译 DLL。</p>
+<p>第一版已编译，独立 V8 测试覆盖上下文、相对模块循环引用、插件导入、命名空间和失败隔离；MO2/Vortex 的实际安装与游戏内多模组加载仍待用户验证。这里的 Mod ZIP 是普通安装归档，不是 ESP 内嵌脚本，也不是安全沙箱。</p>
+<h2 id="玩家安装流程">玩家安装流程</h2>
+<ul><li>安装一次兼容的新 SkyrimJS 框架。需要 HTML 的模组还需完整 UIHost，详见 <a href="getting-started.html">框架安装</a> 和 <a href="html-ui.html">HTML 界面</a>。</li><li>从模组作者处取得 JS 模组 ZIP，在 MO2 中从归档安装并勾选左侧模组；Vortex 中从文件安装、启用并部署。</li><li>完整退出后通过 SKSE 重新启动。框架读取当前有效 Data 目录，发现已安装且可见的 mod.json。</li><li>进入存档触发各模组的 onMounted。纯 JS 包没有 ESP，不会出现在右侧 ESP 插件列表，不占用 ESP 编号；依赖其他 ESP 的模组仍需启用那些插件。</li></ul>
+<p>目录由打包器与模组管理器处理，玩家不需要手动把 JS 复制到框架入口。ZIP 根目录直接是 SKSE，不额外套 Data 或项目目录。采用 SKSE 根目录是为了使用 MO2 已识别的安装结构，参见 <a href="https://raw.githubusercontent.com/ModOrganizer2/modorganizer-game_skyrimSE/master/src/skyrimsemoddatachecker.h">MO2 官方目录检查器</a>。</p>
+<div class="code-block"><div class="code-label">text<button class="copy-code">复制</button></div><pre><code>MyMod.zip
+  SKSE/
+    Plugins/
+      SkyrimJS/
+        Mods/
+          my-follower/
+            mod.json
+            main.js
+            lib/helpers.js
+            ui/index.html</code></pre></div>
+<p>游戏最终看到的路径为 Data/SKSE/Plugins/SkyrimJS/Mods/my-follower。每个模组占据独立子目录，同名 main.js 不互相覆盖。两个安装包若使用相同模组 ID，仍可能被管理器覆盖成同一个有效目录；作者必须选择唯一且稳定的 ID。</p>
+<h2 id="可下载的安装示例">可下载的安装示例</h2>
+<ul><li><a href="downloads/hello-world-1.0.0.zip">Hello World JS 模组</a>：进入存档输出日志，使用自己的 Storage 记录访问次数，不生成 NPC、不发放物品。</li><li><a href="downloads/companion-ui-1.0.0.zip">随从 HTML 面板 JS 模组</a>：完整包含入口与页面，Ctrl + 加号切换菜单，需要框架的 HTML 运行库；召唤仅在点击按钮后发生。</li></ul>
+<p>这些示例不包含框架 DLL，也不包含游戏或其他模组资源。直接安装 ZIP 即可；关闭示例时在管理器禁用对应包并重启。</p>
+<p>如果以前安装过公共 main.js 的随从示例，先按下文关闭旧入口，再启用新的 companion-ui 包，避免同一个快捷键触发两个独立面板。新包使用独立 Storage，不自动接管旧入口生成的旅人；已有游戏角色不会因为改换脚本安装方式而自动删除。</p>
+<h2 id="作者创建项目">作者创建项目</h2>
+<p>维护仓库中的打包工具需要 Node.js 22 或更高版本，玩家运行模组不需要 Node.js。以下是当前源码工具命令，尚未提供 npm 全局包或独立图形打包软件。</p>
+<div class="code-block"><div class="code-label">powershell<button class="copy-code">复制</button></div><pre><code>node tools/mod-pack/cli.cjs init G:/MyMods/my-follower --id my-follower
+node tools/mod-pack/cli.cjs check G:/MyMods/my-follower
+node tools/mod-pack/cli.cjs pack G:/MyMods/my-follower --out G:/MyMods/releases/my-follower-1.0.0.zip</code></pre></div>
+<p>init 只创建新目录，拒绝覆盖已有项目。check 检查 manifest、入口和打包文件限制，不做 TypeScript、JS 语法或游戏逻辑验证。pack 成功输出归档路径、字节数和文件数；目标 ZIP 已存在时拒绝覆盖，换新文件名或自行处理旧包。省略 --out 时输出到当前工作目录的 dist/ID-VERSION.zip。</p>
+<p>源码自带两个完整示例包的生成脚本：</p>
+<div class="code-block"><div class="code-label">powershell<button class="copy-code">复制</button></div><pre><code>./scripts/package-js-mod-examples.ps1</code></pre></div>
+<p>随从示例复用 examples/html-ui.js 与 examples/ui，生成独立项目及 ZIP；不修改用户的 examples/main.js。</p>
+<h2 id="mod-json-参数">mod.json 参数</h2>
+<div class="code-block"><div class="code-label">json<button class="copy-code">复制</button></div><pre><code>{
+  &quot;schemaVersion&quot;: 1,
+  &quot;id&quot;: &quot;my-follower&quot;,
+  &quot;name&quot;: &quot;我的旅人模组&quot;,
+  &quot;version&quot;: &quot;1.0.0&quot;,
+  &quot;entry&quot;: &quot;main.js&quot;,
+  &quot;dependencies&quot;: [],
+  &quot;requires&quot;: [&quot;Skyrim.esm&quot;]
+}</code></pre></div>
+<div class="table-wrap"><table><thead><tr><th>字段</th><th>要求</th></tr></thead><tbody><tr><td>schemaVersion</td><td>可省略，默认 1；目前仅支持 1</td></tr><tr><td>id</td><td>必填，1–32 个小写 ASCII 字母、数字、点、下划线或短横线；首字符为字母/数字，不能以点结束，不能使用 Windows 保留设备名；必须与安装子目录名完全一致</td></tr><tr><td>version</td><td>必填，例如 1.0.0 或 1.0.0-preview；仅作版本标识，不进行依赖版本区间匹配</td></tr><tr><td>entry</td><td>必填，项目内 .js 或 .mjs 文件；用 / 分隔，不能是绝对路径、包含 . / .. 段、设备名、冒号或反斜杠</td></tr><tr><td>name / author</td><td>可选，各最多 128 个 JS 字符；name 默认 id</td></tr><tr><td>description</td><td>可选，最多 4096 个 JS 字符</td></tr><tr><td>enabled</td><td>可选 boolean，默认 true；false 跳过该模组</td></tr><tr><td>dependencies</td><td>可选、不重复的 JS 模组 ID 数组，最多 64 项；依赖先加载，不能依赖自身</td></tr><tr><td>requires</td><td>可选、不重复的 ESP/ESM/ESL 文件名数组，最多 64 项；只检查游戏加载表，不自动安装或启用插件</td></tr></tbody></table></div>
+<p>未知字段、错误类型、损坏 JSON 或大小超过 64 KiB 的配置会记录错误并跳过。UTF-8 BOM 可接受。每次启动最多发现 64 份 manifest，超过上限时拒绝本次全部独立模组发现，保留兼容入口。仅扫描 Mods 下一级目录，不递归寻找其他入口。</p>
+<h2 id="编写入口与相对-import">编写入口与相对 import</h2>
+<div class="code-block"><div class="code-label">js<button class="copy-code">复制</button></div><pre><code>import skyrim from &quot;@skse/Skyrim.esm&quot;;
+import { greet } from &quot;./lib/helpers.js&quot;;
+
+skse.console.log(&quot;加载模组&quot;, skse.mod.id, skse.mod.version);
+skse.onMounted(() =&gt; {
+    greet(skse.player[0]);
+    // hero 是本模组的键，不必自己写 my-follower.hero 前缀。
+    const hero = skse.Storage.get(&quot;hero&quot;);
+    if (hero) skse.console.log(&quot;找到已保存的旅人&quot;, hero.name);
+});</code></pre></div>
+<div class="code-block"><div class="code-label">js<button class="copy-code">复制</button></div><pre><code>// lib/helpers.js
+export function greet(player) {
+    skse.console.log(&quot;你好&quot;, player.name);
+}</code></pre></div>
+<p>每个模组有自己的 V8 Context 和 globalThis，ES Module 顶层变量也独立；使用原来的 skse API 即可。skse.mod 是只读的 <code>{ id, version, name }</code>，仅独立模组提供。JS 日志自动加 <code>[模组ID]</code>，编译错误尽量显示 mod://ID/文件名与行号。</p>
+<p>相对 import 必须显式写 .js 或 .mjs，可使用 ../ 回到本模组内其他目录，最终路径不能越过模组根目录；不自动补扩展名、不解析目录 index.js。支持静态命名导出、默认导出和循环依赖。@skse/某插件.esp 的默认导入能力保留。动态 import、顶层 await、JSON 导入、npm、require、fs、跨模组 JS import 和 BSA 内脚本读取均未提供。</p>
+<p>每个实际加载的 JS 文件非空且不超过 4 MiB，每个模组最多 256 个 JS 文件、累计 32 MiB 源码。修改脚本、manifest 或启用状态后重启整个游戏；重新读档只重新触发 onMounted，不重新执行入口或刷新模块缓存。</p>
+<h2 id="名称与状态如何隔离">名称与状态如何隔离</h2>
+<div class="table-wrap"><table><thead><tr><th>能力</th><th>独立模组的行为</th></tr></thead><tbody><tr><td>Storage.get/set(&quot;hero&quot;)</td><td>实际键为 mod:ID:hero；与旧入口和其他 ID 的数据分开</td></tr><tr><td>player.addTask({ id: &quot;quest&quot; })</td><td>实际任务 ID 为 ID:quest；不提供 ID 时根据配置生成本模组自动 ID</td></tr><tr><td>Tasks.get(&quot;quest&quot;) / Tasks.list()</td><td>get 自动加前缀，list 只返回本模组任务；返回 Task.id 包含完整前缀</td></tr><tr><td>ui.open({ id: &quot;menu&quot;, url: &quot;./ui/index.html&quot; })</td><td>生成包含模组 ID 及其长度前缀的原生 ID，避免含点的 ID 组合冲突；资源根目录为本模组 ui；返回 Panel.id 仍是 menu</td></tr><tr><td>input.bindHotkey / actor.on</td><td>绑定回调保持当前模组的 API 归属，换档沿用原来的原生清理规则</td></tr><tr><td>setTimeout / clearTimeout</td><td>仅能通过本模组的 clearTimeout 取消其自身计时器；换档丢弃旧计时器</td></tr></tbody></table></div>
+<p>角色包装会保留原生引用语义：Storage 可以保存直接传入的角色，attackTo、setTopic、giveItem 等可以使用本模组取得的玩家/NPC；事件里的角色也会包装回本模组。不要跨上下文或用 JSON 构造原生对象身份。旧存档的 NPC/任务句柄仍须在 onMounted 中重新取得。</p>
+<p>原有配额是整个框架共享的：Storage 每档合计 1 MiB、单键加前缀后最多 256 UTF-8 字节；任务合计 32 个、任务 ID 加前缀后最多 128 字符；同时最多 4 个 HTML 面板，原生 ID 格式为 长度.模组ID.本地ID，整体最多 64 字符；计时器、按键与事件监听限制见对应 API。独立模组不会各自获得一套配额。</p>
+<p>UI 页面仍通过 skse.ui.send/on 与游戏脚本通信，没有直接游戏 API。每个模组的 UI 文件应在自己的 ui 子目录内，页面相对资源不可逃出该 ui 根目录。普通 HTML 修改需要销毁并重建页面或重载存档；hide/show 保留页面状态。</p>
+<h2 id="加载顺序与失败">加载顺序与失败</h2>
+<ul><li>配置通过后，先检查 requires，再按 dependencies 做拓扑排序；无依赖关系的模组按 ID 字典序处理，和 ESP/MO2 左侧排序不是同一个顺序。</li><li>缺失或禁用依赖、依赖环、缺失游戏插件时跳过受影响模组。一个入口编译或执行失败，依赖它的模组不运行；无关模组继续加载。</li><li>失败入口已登记的 onMounted 包装不再执行，已追踪的计时器、事件/快捷键与页面会尝试清理。已经产生的游戏副作用不作事务回滚。</li><li>回调异常写入带模组 ID 的日志，并交给现有宿主错误处理路径；不会因为一个 onMounted 抛错而阻止其他模组的回调。</li><li>各 Context 共用同一个 V8 isolate 和游戏进程。此隔离面向名字、全局变量和资源归属，不是安全沙箱；无限循环、内存耗尽、原生崩溃和共享游戏对象/AI 的相互修改不在异常隔离保证范围内。</li></ul>
+<h2 id="兼容旧-main-js-与迁移">兼容旧 main.js 与迁移</h2>
+<p>旧路径 Data/SKSE/Plugins/SkyrimJS/main.js 默认继续执行，并且先于独立模组；它使用旧的全局 Storage、任务和 UI 路径。该文件现在可缺省，缺失不会阻止独立模组加载。</p>
+<p>迁移后，可以在框架目录的 SkyrimJS.ini 中设置：</p>
+<div class="code-block"><div class="code-label">ini<button class="copy-code">复制</button></div><pre><code>[Scripts]
+LoadLegacyMain=0</code></pre></div>
+<p>缺省值为 1。改为 0 只停用旧入口，保留原文件和存档数据；不影响各独立模组的启用状态。不要同时运行同一份逻辑的旧入口与新包。旧的未加前缀 Storage/任务不会自动迁移到新 ID；更改模组 ID 也会使用新的命名空间。</p>
+<h2 id="打包边界与卸载">打包边界与卸载</h2>
+<p>打包器只收集专用项目目录内的 JS/MJS、JSON、HTML/CSS、常见图片/字体、TXT/Markdown 和 LICENSE/NOTICE 文件；忽略 .git、node_modules、编辑器配置和 .env。拒绝子目录中的符号链接/目录联接、危险路径和大小写冲突。应把发布内容放在独立的模组项目中。</p>
+<p>包内最多 2048 个文件，累计 256 MiB；单个资源最多 16 MiB，JS 同时满足上述源码配额。check/pack 不验证所有 import 是否能解析或游戏 API 是否成功。CLI 不打包 DLL、ESP/PEX、任意游戏资源或整个开发仓库；有 ESP/美术资源时作者需另外制作配套安装内容。纯 JS 包无需编译成 ESP。</p>
+<p>禁用或卸载包后必须重启游戏，才会停止后续加载；当前会话不热卸载。已生成角色、物品和其他游戏改动不会自动撤销，SKSE co-save 里的命名空间数据和任务记录会保留，任务配额也不自动释放。</p>
+<h2 id="日志检查">日志检查</h2>
+<div class="code-block"><div class="code-label">text<button class="copy-code">复制</button></div><pre><code>[Mods] loaded hello-world@1.0.0
+[Mods] loaded 1 of 1 planned JS mods
+[hello-world] Independent JS mod loaded: hello-world 1.0.0
+[hello-world] Hello from an installed SkyrimJS mod! visits: 1 player health: ...</code></pre></div>
+<p>顶层 JS 日志可能早于 loaded 行，onMounted 日志在进入存档后出现。错误会包含 skipped、failed 和原因；MO2 的实际日志常位于 overwrite/SKSE/Plugins/SkyrimJS/SkyrimJS.log。若没有找到 manifest，检查模组是否启用、ZIP 根目录是否为 SKSE、ID 是否与子目录一致及是否从 MO2 启动 SKSE。</p><div class="page-navigation"><a href="status.html">← 功能与验证状态</a><a href="collection-quest.html">完整收集任务流程 →</a></div><footer>SkyrimJS 中文文档 · 请以对应版本的代码和验证记录为准。</footer></article><aside class="toc"><div>本页内容</div><a href="#玩家安装流程">玩家安装流程</a><a href="#可下载的安装示例">可下载的安装示例</a><a href="#作者创建项目">作者创建项目</a><a href="#mod-json-参数">mod.json 参数</a><a href="#编写入口与相对-import">编写入口与相对 import</a><a href="#名称与状态如何隔离">名称与状态如何隔离</a><a href="#加载顺序与失败">加载顺序与失败</a><a href="#兼容旧-main-js-与迁移">兼容旧 main.js 与迁移</a><a href="#打包边界与卸载">打包边界与卸载</a><a href="#日志检查">日志检查</a></aside></div></div></body></html>
