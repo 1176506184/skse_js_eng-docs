@@ -1,0 +1,47 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="SkyrimJS 中文开发文档：V8、SKSE、角色、对话、任务与插件资源。"><title>跟随与等待 · SkyrimJS</title><link rel="stylesheet" href="assets/site.css"><script src="assets/search-index.js" defer></script><script src="assets/site.js" defer></script></head><body><aside class="sidebar"><a class="brand" href="index.html"><span>S</span><div>SkyrimJS<small>开发文档 · SE 1.5.97</small></div></a><div class="search"><input id="search" type="search" aria-label="搜索文档" placeholder="搜索 API / 示例…"><div id="search-results" hidden></div></div><nav><div class="nav-section">开始</div><a class="nav-link" href="index.html">项目介绍</a><a class="nav-link" href="getting-started.html">框架安装教程</a><a class="nav-link" href="status.html">功能与验证状态</a><div class="nav-section">教程</div><a class="nav-link" href="js-mods.html">JS 模组安装与打包</a><a class="nav-link" href="collection-quest.html">完整收集任务流程</a><div class="nav-section">API</div><a class="nav-link" href="runtime.html">运行时与生命周期</a><a class="nav-link" href="actors.html">玩家、NPC 与物品</a><a class="nav-link active" href="followers.html">跟随与等待</a><a class="nav-link" href="events.html">角色事件监听</a><a class="nav-link" href="combat.html">战斗与角色姿态</a><a class="nav-link" href="dialogue.html">原生多轮对话</a><a class="nav-link" href="html-ui.html">透明 HTML 界面</a><a class="nav-link" href="plugins.html">插件导入与动作</a><a class="nav-link" href="storage-timers.html">存储与计时器</a><a class="nav-link" href="tasks.html">任务与原生日志</a><div class="nav-section">工具</div><a class="nav-link" href="explorer.html">ESP 资源浏览器</a><div class="nav-section">维护</div><a class="nav-link" href="troubleshooting.html">日志与常见问题</a><a class="nav-link" href="changelog.html">更新日志</a><a class="nav-link" href="contributing.html">文档维护与发布</a></nav><div class="sidebar-footer">开发预览 · 8db9534<br>实现与验证状态分别记录</div></aside><div class="content-shell"><header><span>API / 跟随与等待</span><a href="tools/esp-explorer/index.html">ESP Explorer ↗</a></header><div class="reading"><article><h1 id="跟随-等待与释放-ai-控制">跟随、等待与释放 AI 控制</h1>
+<p>目标版本 Skyrim SE 1.5.97 / SKSE 2.0.20。新增 actor.follow、wait、stopFollow 和只读 followState。使用原生临时 AI 包，不通过循环 setPosition/moveTo 模拟行走，不需要额外 ESP 或 CEF。示例面板 1.1.0 另需完整 HTML UI 运行库。</p>
+<p>当前为开发预览：DLL 已编译，状态策略与 JS 包装逻辑有独立测试；真实寻路、过门、战斗与保存/读档表现尚待用户验证。已核对本机游戏的包类型、目标、挂载、计数和释放调用点，模拟测试不能证明游戏效果已通过。</p>
+<h2 id="最小流程">最小流程</h2>
+<div class="code-block"><div class="code-label">js<button class="copy-code">复制</button></div><pre><code>skse.onMounted(() =&gt; {
+    const player = skse.player[0];
+    let hero = skse.Storage.get(&quot;hero&quot;);
+    if (!hero) {
+        hero = skse.new({ formId: &quot;0x001034E4&quot;, name: &quot;旅人&quot; });
+        if (!hero) return;
+        skse.Storage.set(&quot;hero&quot;, hero);
+    }
+
+    // 保留存档里已有的跟随/等待选择，不在每次挂载时覆盖。
+    if (hero.followState.mode === &quot;none&quot;) hero.follow(player);
+    skse.input.bindHotkey(&quot;Ctrl+F9&quot;, () =&gt; hero.follow(player));
+    skse.input.bindHotkey(&quot;Ctrl+F10&quot;, () =&gt; hero.wait());
+    skse.input.bindHotkey(&quot;Ctrl+F11&quot;, () =&gt; hero.stopFollow());
+});</code></pre></div>
+<p>也可用 <a href="actors.html">getActor</a> 获取其他插件已有的角色。new 生成 NPC；getActor 获取已有引用；moveTo 一次性传送；follow 持续交给原生 AI 寻路。以上快捷键仅用于示例，跟随 API 本身不依赖输入功能。</p>
+<h2 id="hero-follow-targetactor">hero.follow(targetActor)</h2>
+<p>恰好传入一个当前存档的原生角色包装，目标可为玩家或另一个 NPC。源必须是 NPC，不能控制玩家 AI、跟随自身或形成已知 JS 跟随链的循环。不接受坐标、Form 包装或 JSON 对象；目标格式错误抛 TypeError。</p>
+<p>指令接受后返回 hero；缺少角色/目标、死亡、删除、禁用、未进入存档、其他 JS 模组已有指令、已有其他临时 AI 包或总数超过 64 时记录错误并返回 undefined。源角色尚无可用 3D/AI 数据时可先接受为 pending，准备好后再提交包。相同目标的重复调用不重复安装包；显式再次调用可重试失败的提交。返回角色不等于已经开始移动或已到达。</p>
+<p>使用游戏默认跟随行为、速度和距离；本版没有 distance/speed/teleport 选项，不使用传送追赶玩家。导航网格、门权限、目标可达性和游戏 AI 会影响移动，不能保证追过所有地图切换、快速旅行或不可达地点。</p>
+<p>接口不修改阵营、关系等级、队友标记、招募任务或友好关系；敌对 NPC 不会因此变成友好随从，也不自动加入玩家的战斗。其他模组的招募/解雇流程仍由其自身负责。</p>
+<h2 id="hero-wait">hero.wait()</h2>
+<p>无参数。将本模组对该 NPC 的跟随指令替换为原生 DoNothing 临时包；没有跟随指令时也可直接安排等待。接受后返回 hero；多传参数抛 TypeError，运行条件失败记录错误并返回 undefined。其他 JS 模组的指令不会被覆盖。</p>
+<p>等待期间不主动跟随玩家，战斗仍可打断等待；战斗结束后继续等待。本版没有固定等待地点的地图标记：如果战斗使角色离开原位，结束后会在战斗结束的位置等待，不承诺返回发出 wait 的坐标。它不是禁用 AI、冻结身体或永久阻止其他包。</p>
+<p>hero.follow(player) 从等待切回跟随。setStatus(idle) 仍负责原有战斗/武器姿态处理，不切换跟随模式；结束战斗后，原来的移动指令仍保留。</p>
+<h2 id="hero-stopfollow">hero.stopFollow()</h2>
+<p>无参数。删除本模组的 follow 或 wait 指令；若角色仍运行我们记录的临时包，通过原生入口释放，再请求正常 AI 调度重新评估。不会保存旧 AI 的裸指针，也不强行恢复过去某一帧的行为。</p>
+<p>成功返回 hero；没有指令时重复调用也是成功的无操作。其他模组持有 JS 指令时记录错误并返回 undefined。其他插件已替换临时包时，只删除自己的记录，不结束其他插件的包。此操作不停止战斗、不解雇游戏原生随从、不删除 NPC。多传参数抛 TypeError；未进入存档或源引用失效时记录错误并返回 undefined。</p>
+<p>建议卸载或禁用 JS 模组前先 stopFollow 再保存。框架继续安装时会尝试清理不再加载的 JS 模组留下的已知包；完全移除框架后没有代码继续清理。</p>
+<h2 id="hero-followstate">hero.followState</h2>
+<p>本模组的只读快照，返回冻结对象 <code>{ mode, state, target }</code>；旧快照不会自动更新，需要重新读取。失效角色或未进入存档时返回 undefined。target 为当前跟随目标的角色包装，等待/无指令时为 undefined，跨档应重新获取。</p>
+<div class="table-wrap"><table><thead><tr><th>字段</th><th>值与含义</th></tr></thead><tbody><tr><td>mode</td><td>none / follow / wait，本模组登记的指令</td></tr><tr><td>state</td><td>none：没有本模组指令</td></tr><tr><td>state</td><td>pending：等待源角色的场景、3D 与 AI 数据</td></tr><tr><td>state</td><td>following / waiting：对应原生临时包已安装，不是到达通知</td></tr><tr><td>state</td><td>combat：游戏战斗 AI 接管，不重装跟随/等待包</td></tr><tr><td>state</td><td>blocked：其他临时包占用，或原生提交未被接受</td></tr><tr><td>target</td><td>follow 的目标包装，其他模式为 undefined</td></tr></tbody></table></div>
+<p>每约 500 ms 在 SKSE 游戏任务队列检查已有指令，没有指令时不提交额外巡检任务。后台计时线程不直接访问 AI。死亡、删除、禁用、源或目标无法再解析时移除指令；临时卸载但引用仍存在时保留为 pending。被其他临时包占用时不抢占，释放后再尝试。原生提交连续失败最多 3 次，之后保持 blocked；检查日志并再次 follow/wait 可显式重试。</p>
+<h2 id="存档与多个-js-模组">存档与多个 JS 模组</h2>
+<p>指令写入同名 SKSE co-save，包含角色、目标、模式、所属 JS 模组 ID 和已安装包 ID；加载时使用 SKSE ResolveFormId 重映射。原生临时包由游戏自身保存，框架不序列化原生指针或 JS 函数。</p>
+<p>onMounted 前每个世界只恢复一次指令，仅恢复成功加载的 JS 入口所属记录；未加载模组会尝试释放已知包。换档先清空内存指令，避免把 A 存档的角色/包套到 B 存档。脚本仍应在挂载后从 Storage/getActor 重新获取角色并重新绑定快捷键。应保留配对的 .ess 与 .skse 文件；缺少 co-save 时无法识别旧指令的归属。</p>
+<p>如果保存的原生包 ID 无法解析，会记录错误并避免清除身份未知的当前包；此时可能显示 blocked，需要核对存档与 AI 状态，不能因此重新生成 NPC。</p>
+<p>全框架最多 64 条指令，每个 NPC 同时归一个 JS 模组控制。独立模组原生绑定携带自己的 ID，不能通过 stopFollow 清掉其他 JS 模组的指令；旧 main.js 使用兼容归属。其他 API 仍可能修改同一 NPC，这不是进程隔离或完整 AI 仲裁系统。</p>
+<h2 id="面板与游戏验证">面板与游戏验证</h2>
+<p><a href="downloads/companion-ui-1.1.0.zip">下载随从面板 1.1.0</a>，在 MO2/Vortex 替换同 ID 的旧 companion-ui 包，更新 DLL 并完整重启游戏。已缓存的旅人继续从同一 Storage 命名空间读取，不因更新面板重复生成。</p>
+<p>1. 进入存档，Ctrl + 加号打开面板，召唤旅人并点击跟随；收起面板走一段路，观察行走与绕障碍。 2. 穿过可正常通行的门，观察角色是否自行跟进。 3. 点击等待，走远后观察是否留在原地，再点击跟随。 4. 触发正常战斗，观察 combat 状态及战斗结束后的原模式恢复。 5. 分别在 follow/wait 状态保存并重载，确认模式恢复、快捷键只触发一次且没有重复生成旅人。 6. 点击结束跟随，观察原有 AI 接管，并检查 SkyrimJS.log 的 movement 错误。</p>
+<h2 id="原生依据">原生依据</h2>
+<p>布局依据本地 SKSE 2.0.20、<a href="https://github.com/CharmedBaryon/CommonLibSSE-NG/blob/main/src/RE/A/Actor.cpp">CommonLibSSE-NG Actor</a> 与 <a href="https://github.com/CharmedBaryon/CommonLibSSE-NG/blob/main/include/RE/A/AIProcess.h">AIProcess</a>。包创建使用 PACK 类型 Follow=1 / DoNothing=27，与过程编号不同；相关纠正见 <a href="https://github.com/alandtse/CommonLibSSE-NG/blob/ng/CHANGELOG.html">CommonLibSSE-NG 更新说明</a>。本机静态核对创建、目标句柄、0xDF 挂载槽和 run-once 清理调用点，未启动游戏验证。</p><div class="page-navigation"><a href="actors.html">← 玩家、NPC 与物品</a><a href="events.html">角色事件监听 →</a></div><footer>SkyrimJS 中文文档 · 请以对应版本的代码和验证记录为准。</footer></article><aside class="toc"><div>本页内容</div><a href="#最小流程">最小流程</a><a href="#hero-follow-targetactor">hero.follow(targetActor)</a><a href="#hero-wait">hero.wait()</a><a href="#hero-stopfollow">hero.stopFollow()</a><a href="#hero-followstate">hero.followState</a><a href="#存档与多个-js-模组">存档与多个 JS 模组</a><a href="#面板与游戏验证">面板与游戏验证</a><a href="#原生依据">原生依据</a></aside></div></div></body></html>
